@@ -31,15 +31,15 @@ object MutableLongMap {
     * @param _values
     */
   @mutable
-  final case class LongMapLongVFixedSize(
+  final case class LongMapLongVFixedSize[V](
+      val defaultEntry: Long => V,
       private var mask: Int = MAX_MASK,
       private var extraKeys: Int = 0,
-      private var zeroValue: Long = 0,
-      private var minValue: Long = 0,
+      private var zeroValue: AnyRef = null,
+      private var minValue: AnyRef = null,
       private var _size: Int = 0,
       private var _keys: Array[Long] = Array.fill(MAX_MASK + 1)(0),
-      private var _values: Array[Long] = Array.fill(MAX_MASK + 1)(0),
-      val defaultEntry: Long => Long = (x => 0)
+      private var _values: Array[AnyRef] = Array.fill(MAX_MASK + 1)(null)
   ) {
     import LongMapLongVFixedSize.validKeyInArray
     import LongMapLongVFixedSize.arrayCountValidKeys
@@ -138,11 +138,11 @@ object MutableLongMap {
       * @return
       */
     @pure
-    def apply(key: Long): Long = {
+    def apply(key: Long): V = {
       require(valid)
       if (key == -key) {
-        if (key == 0 && (extraKeys & 1) != 0) zeroValue
-        else if (key == Long.MinValue && (extraKeys & 2) != 0) minValue
+        if (key == 0 && (extraKeys & 1) != 0) zeroValue.asInstanceOf[V]
+        else if (key == Long.MinValue && (extraKeys & 2) != 0) minValue.asInstanceOf[V]
         else defaultEntry(key)
       } else {
         val seekEntryRes = seekEntry(key)(_keys, mask)
@@ -169,7 +169,7 @@ object MutableLongMap {
               key,
               index
             )
-            _values(index)
+            _values(index).asInstanceOf[V]
           }
           case _ => defaultEntry(key)
         }
@@ -185,7 +185,7 @@ object MutableLongMap {
       *
       * This is the fastest way to add an entry to a `LongMap`.
       */
-    def update(key: Long, v: Long): Boolean = {
+    def update(key: Long, v: V): Boolean = {
       require(valid)
       val oldMap = getCurrentListMap(_keys, _values, mask, extraKeys, zeroValue, minValue, 0)
 
@@ -199,10 +199,10 @@ object MutableLongMap {
               extraKeys,
               (extraKeys | 1),
               zeroValue,
-              v,
+              v.asInstanceOf[AnyRef],
               minValue
             )
-            zeroValue = v
+            zeroValue = v.asInstanceOf[AnyRef]
             extraKeys |= 1
             true
           } else {
@@ -215,9 +215,9 @@ object MutableLongMap {
               (extraKeys | 2),
               zeroValue,
               minValue,
-              v
+              v.asInstanceOf[AnyRef]
             )
-            minValue = v
+            minValue = v.asInstanceOf[AnyRef]
             extraKeys |= 2
             true
           }
@@ -337,11 +337,11 @@ object MutableLongMap {
               extraKeys,
               extraKeys & 0x2,
               zeroValue,
-              0,
+              null,
               minValue
             )
             extraKeys &= 0x2
-            zeroValue = 0
+            zeroValue = null
 
             true
           } else {
@@ -353,10 +353,10 @@ object MutableLongMap {
               extraKeys & 0x1,
               zeroValue,
               minValue,
-              0
+              null
             )
             extraKeys &= 0x1
-            minValue = 0
+            minValue = null
 
             true
           }
@@ -381,7 +381,7 @@ object MutableLongMap {
               )
               _size -= 1
               _keys(index) = Long.MinValue
-              _values(index) = 0
+              _values(index) = null
 
               if (
                 getCurrentListMap(_keys, _values, mask, extraKeys, zeroValue, minValue, 0).contains(
@@ -413,7 +413,7 @@ object MutableLongMap {
       *
       * @return
       */
-    private def updateHelperNewKey(key: Long, v: Long, index: Int): Boolean = {
+    private def updateHelperNewKey(key: Long, v: V, index: Int): Boolean = {
       require(valid)
       require(key != 0)
       require(key != Long.MinValue)
@@ -523,7 +523,7 @@ object MutableLongMap {
 
     @inline
     @pure
-    private def map: ListMapLongKey[Long] = {
+    private def map: ListMapLongKey[V] = {
       require(valid)
       getCurrentListMap(_keys, _values, mask, extraKeys, zeroValue, minValue, 0)
     }
@@ -793,15 +793,15 @@ object MutableLongMap {
     )
 
     @pure
-    def getCurrentListMap(
+    def getCurrentListMap[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         from: Int
-    ): ListMapLongKey[Long] = {
+    ): ListMapLongKey[V] = {
       require(validMask(mask))
       require(_values.length == mask + 1)
       require(_keys.length == _values.length)
@@ -890,13 +890,13 @@ object MutableLongMap {
     )
 
     @pure
-    def getCurrentListMapNoExtraKeys(
+    def getCurrentListMapNoExtraKeys[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         from: Int
     ): ListMapLongKey[Long] = {
       require(validMask(mask))
@@ -964,16 +964,16 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaAddValidKeyToArrayThenAddPairToListMap(
+    def lemmaAddValidKeyToArrayThenAddPairToListMap[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         i: Int,
         k: Long,
-        v: Long
+        v: V
     ): Unit = {
       require(validMask(mask))
       require(_values.length == mask + 1)
@@ -1107,16 +1107,16 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaAddValidKeyToArrayThenMapNoExtrasAddPair(
+    def lemmaAddValidKeyToArrayThenMapNoExtrasAddPair[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         i: Int,
         k: Long,
-        v: Long,
+        v: V,
         from: Int
     ): Unit = {
       require(from >= 0 && from <= _keys.length)
@@ -1310,16 +1310,16 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaChangeValueExistingKeyToArrayThenAddPairToListMap(
+    def lemmaChangeValueExistingKeyToArrayThenAddPairToListMap[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         i: Int,
         k: Long,
-        v: Long
+        v: V
     ): Unit = {
       require(validMask(mask))
       require(_values.length == mask + 1)
@@ -1424,16 +1424,16 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaChangeValueExistingKeyToArrayThenMapNoExtrasAddPair(
+    def lemmaChangeValueExistingKeyToArrayThenMapNoExtrasAddPair[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         i: Int,
         k: Long,
-        v: Long,
+        v: V,
         from: Int
     ): Unit = {
       require(from >= 0 && from <= _keys.length)
@@ -1622,15 +1622,15 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaChangeZeroKeyThenAddPairToListMap(
+    def lemmaChangeZeroKeyThenAddPairToListMap[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeysBefore: Int,
         extraKeysAfter: Int,
-        zeroValueBefore: Long,
-        zeroValueAfter: Long,
-        minValue: Long
+        zeroValueBefore: AnyRef,
+        zeroValueAfter: AnyRef,
+        minValue: AnyRef
     ): Unit = {
       require(validMask(mask))
       require(_values.length == mask + 1)
@@ -1798,15 +1798,15 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaChangeLongMinValueKeyThenAddPairToListMap(
+    def lemmaChangeLongMinValueKeyThenAddPairToListMap[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeysBefore: Int,
         extraKeysAfter: Int,
-        zeroValue: Long,
-        minValueBefore: Long,
-        minValueAfter: Long
+        zeroValue: AnyRef,
+        minValueBefore: V,
+        minValueAfter: V
     ): Unit = {
       require(validMask(mask))
       require(_values.length == mask + 1)
@@ -1934,13 +1934,13 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaRemoveValidKeyToArrayThenRemoveKeyFromListMap(
+    def lemmaRemoveValidKeyToArrayThenRemoveKeyFromListMap[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         i: Int,
         k: Long
     ): Unit = {
@@ -2061,15 +2061,15 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaRemoveLongMinValueKeyThenRemoveKeyFromListMap(
+    def lemmaRemoveLongMinValueKeyThenRemoveKeyFromListMap[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeysBefore: Int,
         extraKeysAfter: Int,
-        zeroValue: Long,
-        minValueBefore: Long,
-        minValueAfter: Long
+        zeroValue: AnyRef,
+        minValueBefore: V,
+        minValueAfter: V
     ): Unit = {
       require(validMask(mask))
       require(_values.length == mask + 1)
@@ -2191,15 +2191,15 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaRemoveZeroKeyThenRemoveKeyFromListMap(
+    def lemmaRemoveZeroKeyThenRemoveKeyFromListMap[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeysBefore: Int,
         extraKeysAfter: Int,
-        zeroValueBefore: Long,
-        zeroValueAfter: Long,
-        minValue: Long
+        zeroValueBefore: AnyRef,
+        zeroValueAfter: AnyRef,
+        minValue: AnyRef
     ): Unit = {
       require(validMask(mask))
       require(_values.length == mask + 1)
@@ -2322,13 +2322,13 @@ object MutableLongMap {
     @pure
     @opaque
     @pure
-    def lemmaRemoveValidKeyFromArrayThenMapNoExtrasRemoveKey(
+    def lemmaRemoveValidKeyFromArrayThenMapNoExtrasRemoveKey[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         i: Int,
         k: Long,
         from: Int
@@ -2696,16 +2696,16 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaNoChangeToArrayThenSameMapNoExtras(
+    def lemmaNoChangeToArrayThenSameMapNoExtras[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeysBefore: Int,
         extraKeysAfter: Int,
-        zeroValueBefore: Long,
-        zeroValueAfter: Long,
-        minValueBefore: Long,
-        minValueAfter: Long,
+        zeroValueBefore: V,
+        zeroValueAfter: V,
+        minValueBefore: V,
+        minValueAfter: V,
         from: Int
     ): Unit = {
       require(validMask(mask))
@@ -2763,13 +2763,13 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaKeyInListMapThenSameValueInArray(
+    def lemmaKeyInListMapThenSameValueInArray[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         k: Long,
         i: Int
     ): Unit = {
@@ -2842,13 +2842,13 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaKeyInListMapIsInArray(
+    def lemmaKeyInListMapIsInArray[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         k: Long
     ): Unit = {
       require(validMask(mask))
@@ -2883,13 +2883,13 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaValidKeyInArrayIsInListMap(
+    def lemmaValidKeyInArrayIsInListMap[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         i: Int
     ): Unit = {
       require(validMask(mask))
@@ -2913,13 +2913,13 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaArrayContainsKeyThenInListMap(
+    def lemmaArrayContainsKeyThenInListMap[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         k: Long,
         from: Int
     ): Unit = {
@@ -2969,15 +2969,15 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaListMapApplyFromThenApplyFromZero(
+    def lemmaListMapApplyFromThenApplyFromZero[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         k: Long,
-        v: Long,
+        v: V,
         from: Int
     ): Unit = {
       require(validMask(mask))
@@ -3059,13 +3059,13 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaArrayContainsFromAndNotEqualThenContainsFromPlusOne(
+    def lemmaArrayContainsFromAndNotEqualThenContainsFromPlusOne[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         k: Long,
         from: Int
     ): Unit = {
@@ -3087,13 +3087,13 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaListMapRecursiveValidKeyArray(
+    def lemmaListMapRecursiveValidKeyArray[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         from: Int
     ): Unit = {
       require(validMask(mask))
@@ -3197,11 +3197,11 @@ object MutableLongMap {
     @opaque
     @inlineOnce
     @pure
-    def lemmaInListMapAfterAddingDiffThenInBefore(
+    def lemmaInListMapAfterAddingDiffThenInBefore[V](
         k: Long,
         otherKey: Long,
-        value: Long,
-        lm: ListMapLongKey[Long]
+        value: V,
+        lm: ListMapLongKey[V]
     ): Unit = {
       require((lm + (otherKey, value)).contains(k))
       require(k != otherKey)
@@ -3213,13 +3213,13 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaInListMapFromThenFromPlsOneIfNotEqToFstNoXMin(
+    def lemmaInListMapFromThenFromPlsOneIfNotEqToFstNoXMin[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         k: Long,
         from: Int
     ): Unit = {
@@ -3315,13 +3315,13 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaInListMapFromThenFromPlsOneIfNotEqToFstNoXZero(
+    def lemmaInListMapFromThenFromPlsOneIfNotEqToFstNoXZero[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         k: Long,
         from: Int
     ): Unit = {
@@ -3417,13 +3417,13 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaInListMapFromThenFromPlsOneIfNotEqToFstXKeys(
+    def lemmaInListMapFromThenFromPlsOneIfNotEqToFstXKeys[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         k: Long,
         from: Int
     ): Unit = {
@@ -3529,13 +3529,13 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaInListMapFromThenFromPlsOneIfNotEqToFst(
+    def lemmaInListMapFromThenFromPlsOneIfNotEqToFst[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         k: Long,
         from: Int
     ): Unit = {
@@ -3600,13 +3600,13 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaInListMapFromThenFromZero(
+    def lemmaInListMapFromThenFromZero[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         from: Int,
         i: Int
     ): Unit = {
@@ -3648,13 +3648,13 @@ object MutableLongMap {
     @opaque
     @inlineOnce
     @pure
-    def lemmaInListMapFromThenInFromSmaller(
+    def lemmaInListMapFromThenInFromSmaller[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         from: Int,
         newFrom: Int,
         i: Int
@@ -3717,13 +3717,13 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaInListMapFromThenInFromMinusOne(
+    def lemmaInListMapFromThenInFromMinusOne[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         from: Int,
         i: Int
     ): Unit = {
@@ -3781,13 +3781,13 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaListMapContainsThenArrayContainsFrom(
+    def lemmaListMapContainsThenArrayContainsFrom[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         k: Long,
         from: Int
     ): Unit = {
@@ -4041,13 +4041,13 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaInListMapThenSeekEntryFinds(
+    def lemmaInListMapThenSeekEntryFinds[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         k: Long
     ): Unit = {
       require(validMask(mask))
@@ -4079,13 +4079,13 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaNotInListMapThenSeekEntryFindsMissingBit(
+    def lemmaNotInListMapThenSeekEntryFindsMissingBit[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         k: Long
     ): Unit = {
       require(validMask(mask))
@@ -4137,13 +4137,13 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaInListMapThenSeekEntryOrOpenFindsIt(
+    def lemmaInListMapThenSeekEntryOrOpenFindsIt[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         k: Long
     ): Unit = {
       require(validMask(mask))
@@ -4173,13 +4173,13 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaNotInListMapThenSeekEntryOrOpenFindsFreeOrNothing(
+    def lemmaNotInListMapThenSeekEntryOrOpenFindsFreeOrNothing[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         k: Long
     ): Unit = {
       require(validMask(mask))
@@ -4267,13 +4267,13 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaSeekEntryOrOpenReturnsValidIndex(
+    def lemmaSeekEntryOrOpenReturnsValidIndex[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         k: Long
     ): Unit = {
       require(validMask(mask))
@@ -4298,13 +4298,13 @@ object MutableLongMap {
 
     @opaque
     @pure
-    def lemmaSeekEntryGivesInRangeIndex(
+    def lemmaSeekEntryGivesInRangeIndex[V](
         _keys: Array[Long],
-        _values: Array[Long],
+        _values: Array[V],
         mask: Int,
         extraKeys: Int,
-        zeroValue: Long,
-        minValue: Long,
+        zeroValue: AnyRef,
+        minValue: AnyRef,
         k: Long
     ): Unit = {
       require(validMask(mask))

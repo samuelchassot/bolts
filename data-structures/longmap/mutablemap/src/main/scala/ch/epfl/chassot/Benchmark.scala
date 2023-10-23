@@ -1,8 +1,11 @@
 // to run it:
 // scala-cli -J -Xmx24576m Benchmark.scala MutableLongMap.scala StrictlyOrderedLongListMap.scala  $(find /localhome/chassot/stainless/frontends/library/stainless/ -name "*.scala")
 
+import stainless.lang._
+import stainless.annotation._
 import ch.epfl.chassot.MutableLongMap.*
 
+@extern
 object MutableLongMapBenchmark {
   def benchmarkVerifiedMap(n: Int) = {
     val m = getEmptyLongMap(l => 0L)
@@ -19,6 +22,7 @@ object MutableLongMapBenchmark {
 
 }
 
+@extern
 @main def main(): Unit = {
   val n = 4096
   MutableLongMapBenchmark.benchmarkVerifiedMap(n)

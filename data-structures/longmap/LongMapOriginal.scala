@@ -132,6 +132,7 @@ final class LongMap[V] private[collection] (defaultEntry: Long => V, initialBuff
   }
 
   override def contains(key: Long): Boolean = {
+    print(f"Modified version to print: contains: $key")
     if (key == -key) (((key >>> 63).toInt + 1) & extraKeys) != 0
     else seekEntry(key) >= 0
   }

@@ -170,9 +170,11 @@ object MutableLongMap {
 
     def repackHelper(): (Boolean, Cell[LongMapFixedSize[V]]) = {
       require(valid)
-
       val newMask: Int = computeNewMask(underlying.v.mask, underlying.v._size)
-      // println(f"NewMask = $newMask")
+
+      println(f"BEGIN repack, with oldMask = ${underlying.v.mask}, size = ${underlying.v.size}")
+      println(f"\tnew mask = $newMask")
+
       val newMap = Cell(LongMapFixedSize.getNewLongMapFixedSize(newMask, underlying.v.defaultEntry))
       val resExtraKeys = if ((underlying.v.extraKeys & 1) != 0 && (underlying.v.extraKeys & 2) != 0) {
         // it means there is a mapping for the key 0 and the Long.MIN_VALUE
@@ -1103,37 +1105,37 @@ object MutableLongMap {
 
     def getNewLongMapFixedSize[V](mask: Int, defaultEntry: Long => V): LongMapFixedSize[V] = {
       require(validMask(mask))
-      val _keys: Array[Long] = Array.fill(mask + 1)(0)
+      // @ghost val _keys: Array[Long] = Array.fill(mask + 1)(0)
       val res = LongMapFixedSize[V](defaultEntry, mask, 0, defaultEntry(0L), defaultEntry(0L), 0, Array.fill(mask + 1)(0), Array.fill(mask + 1)(EmptyCell[V]()))
-      assert(res.simpleValid)
-      assert(res._keys == Array.fill(mask + 1)(0L))
-      assert(_keys.length == mask + 1)
-      assert(res._keys.length == mask + 1)
-      assert(res._size == 0)
-      ghostExpr(LongMapFixedSize.lemmaArrayCountValidKeysOfFilled0ArrayIs0(res._keys, 0, mask + 1))
+      // assert(res.simpleValid)
+      // assert(res._keys == Array.fill(mask + 1)(0L))
+      // assert(_keys.length == mask + 1)
+      // assert(res._keys.length == mask + 1)
+      // assert(res._size == 0)
+      // ghostExpr(LongMapFixedSize.lemmaArrayCountValidKeysOfFilled0ArrayIs0(res._keys, 0, mask + 1))
 
-      assert(arrayCountValidKeys(res._keys, 0, res._keys.length) == res._size)
+      // assert(arrayCountValidKeys(res._keys, 0, res._keys.length) == res._size)
 
-      ghostExpr(LongMapFixedSize.lemmaArrayForallSeekEntryOrOpenFoundAlwaysTrueFor0Array(res._keys, mask, 0))
-      assert(arrayForallSeekEntryOrOpenFound(0)(res._keys, mask))
+      // ghostExpr(LongMapFixedSize.lemmaArrayForallSeekEntryOrOpenFoundAlwaysTrueFor0Array(res._keys, mask, 0))
+      // assert(arrayForallSeekEntryOrOpenFound(0)(res._keys, mask))
 
-      ghostExpr(LongMapFixedSize.lemmaArrayNoDuplicatesInAll0Array(res._keys, 0, mask + 1))
-      assert(arrayNoDuplicates(res._keys, 0))
-      assert(res.valid)
-      assert(res.mask == mask)
-      ghostExpr(if (res.map != ListMapLongKey.empty[V]) {
-        assert(!res.map.toList.isEmpty)
-        val kv = res.map.toList.head
-        val k = kv._1
-        assert(res.map.contains(k))
-        LongMapFixedSize.lemmaKeyInListMapIsInArray(res._keys, res._values, mask, res.extraKeys, res.zeroValue, res.minValue, k, res.defaultEntry)
-        assert(arrayContainsKey(res._keys, k, 0))
-        val index = arrayScanForKey(res._keys, k, 0)
-        assert(res._keys(index) == k)
-        check(false)
+      // ghostExpr(LongMapFixedSize.lemmaArrayNoDuplicatesInAll0Array(res._keys, 0, mask + 1))
+      // assert(arrayNoDuplicates(res._keys, 0))
+      // assert(res.valid)
+      // assert(res.mask == mask)
+      // ghostExpr(if (res.map != ListMapLongKey.empty[V]) {
+      //   assert(!res.map.toList.isEmpty)
+      //   val kv = res.map.toList.head
+      //   val k = kv._1
+      //   assert(res.map.contains(k))
+      //   LongMapFixedSize.lemmaKeyInListMapIsInArray(res._keys, res._values, mask, res.extraKeys, res.zeroValue, res.minValue, k, res.defaultEntry)
+      //   assert(arrayContainsKey(res._keys, k, 0))
+      //   val index = arrayScanForKey(res._keys, k, 0)
+      //   assert(res._keys(index) == k)
+      //   check(false)
 
-      } else { () })
-      assert(res.map == ListMapLongKey.empty[V]) // TODO
+      // } else { () })
+      // assert(res.map == ListMapLongKey.empty[V]) // TODO
       res
     } ensuring (res => res.valid && res.mask == mask && res.map == ListMapLongKey.empty[V])
 

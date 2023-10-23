@@ -1,0 +1,50 @@
+Test create array of empty cell for different mask
+mask = 7
+Time to create array of empty cell for mask 7 = 3 ms
+mask = 15
+Time to create array of empty cell for mask 15 = 0 ms
+mask = 31
+Time to create array of empty cell for mask 31 = 0 ms
+mask = 63
+Time to create array of empty cell for mask 63 = 0 ms
+mask = 127
+Time to create array of empty cell for mask 127 = 0 ms
+mask = 255
+Time to create array of empty cell for mask 255 = 0 ms
+mask = 511
+Time to create array of empty cell for mask 511 = 0 ms
+mask = 1023 = 2^^10 - 1
+Time to create array of empty cell for mask 1023 = 0 ms
+mask = 2047
+Time to create array of empty cell for mask 2047 = 0 ms
+mask = 4095
+Time to create array of empty cell for mask 4095 = 0 ms
+mask = 8191
+Time to create array of empty cell for mask 8191 = 0 ms
+mask = 16383
+Time to create array of empty cell for mask 16383 = 1 ms
+mask = 32767
+Time to create array of empty cell for mask 32767 = 2 ms
+mask = 65535
+Time to create array of empty cell for mask 65535 = 1 ms
+mask = 131071
+Time to create array of empty cell for mask 131071 = 2 ms
+mask = 262143
+Time to create array of empty cell for mask 262143 = 3 ms
+mask = 524287
+Time to create array of empty cell for mask 524287 = 6 ms
+mask = 1048575 = 2^^20 - 1
+Time to create array of empty cell for mask 1048575 = 13 ms
+mask = 2097151
+Time to create array of empty cell for mask 2097151 = 27 ms
+mask = 4194303
+Time to create array of empty cell for mask 4194303 = 53 ms
+mask = 8388607
+Time to create array of empty cell for mask 8388607 = 211 ms
+mask = 16777215
+Time to create array of empty cell for mask 16777215 = 446 ms
+mask = 33554431
+Time to create array of empty cell for mask 33554431 = 19'543 ms
+mask = 67108863
+Time to create array of empty cell for mask 67108863 = 14Time to create array of empty cell for mask 134217727 = 116036 ms
+mask = 268435455

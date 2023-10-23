@@ -25,6 +25,6 @@ object BugLongMap {
 }
 
 @main def main(): Unit = {
-  // BugLongMap.triggerBug()
-  BugLongMap.notTriggerBugVerified()
+  BugLongMap.triggerBug()
+  // BugLongMap.notTriggerBugVerified()
 }

@@ -43,14 +43,15 @@ object MutableLongMap {
     LongMap(Cell(emptyMap))
   } ensuring (res => res.valid && res.size == 0)
 
-  /** Helper method to create a new empty LongMap
+  /** Helper method to create a new empty LongMap WARNING: Unsound!!!! For the map to be correct, the initial size passed must be a power of 2!!!
     *
     * @param defaultEntry
+    * @param initialArraySize
     * @return
     */
   @extern
   def getEmptyLongMap[V](defaultEntry: Long => V, initialArraySize: Int): LongMap[V] = {
-    val m = if(initialArraySize < 8) 7 else if(initialArraySize  - 1 >= MAX_MASK) MAX_MASK else initialArraySize - 1
+    val m = if (initialArraySize < 8) 7 else if (initialArraySize - 1 >= MAX_MASK) MAX_MASK else initialArraySize - 1
     assert(validMask(m))
     val emptyMap = LongMapFixedSize.getNewLongMapFixedSize(m, defaultEntry)
     LongMap(Cell(emptyMap))
@@ -100,13 +101,7 @@ object MutableLongMap {
       // println(f"Current array = ${underlying.v._keys.toList}")
       val repacked = if (imbalanced()) {
         // println(f"Update: repack initiated")
-        val t1 = System.nanoTime()
-
-        val res = repack()
-
-        val t2 = System.nanoTime()
-        println(f"Repack time: ${(t2 - t1) / 1000000} ms")
-        res
+        repack()
       } else {
         true
       }

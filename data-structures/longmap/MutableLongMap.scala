@@ -37,7 +37,20 @@ object MutableLongMap {
     */
   @extern
   def getEmptyLongMap[V](defaultEntry: Long => V): LongMap[V] = {
-    val m = 127
+    val m = 15
+    assert(validMask(m))
+    val emptyMap = LongMapFixedSize.getNewLongMapFixedSize(m, defaultEntry)
+    LongMap(Cell(emptyMap))
+  } ensuring (res => res.valid && res.size == 0)
+
+  /** Helper method to create a new empty LongMap
+    *
+    * @param defaultEntry
+    * @return
+    */
+  @extern
+  def getEmptyLongMap[V](defaultEntry: Long => V, initialArraySize: Int): LongMap[V] = {
+    val m = if(initialArraySize < 8) 7 else if(initialArraySize  - 1 >= MAX_MASK) MAX_MASK else initialArraySize - 1
     assert(validMask(m))
     val emptyMap = LongMapFixedSize.getNewLongMapFixedSize(m, defaultEntry)
     LongMap(Cell(emptyMap))

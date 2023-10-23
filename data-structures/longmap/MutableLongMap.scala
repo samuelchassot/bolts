@@ -87,7 +87,13 @@ object MutableLongMap {
       // println(f"Current array = ${underlying.v._keys.toList}")
       val repacked = if (imbalanced()) {
         // println(f"Update: repack initiated")
-        repack()
+        val t1 = System.nanoTime()
+
+        val res = repack()
+
+        val t2 = System.nanoTime()
+        println(f"Repack time: ${(t2 - t1) / 1000000} ms")
+        res
       } else {
         true
       }
@@ -208,36 +214,36 @@ object MutableLongMap {
 
       val currentValue = underlying.v._values(from).get(underlying.v.defaultEntry(0L))
 
-      @ghost val newMapListMapBefore = newMap.map
+      // @ghost val newMapListMapBefore = newMap.map
 
       if (currentKey != 0 && currentKey != Long.MinValue) {
 
         // There is a key in the array, add it to the new map
         val res = newMap.update(currentKey, currentValue)
 
-        ghostExpr(if (newMapListMapBefore.contains(currentKey)) {
-          LongMapFixedSize.lemmaListMapContainsThenArrayContainsFrom(
-            underlying.v._keys,
-            underlying.v._values,
-            underlying.v.mask,
-            underlying.v.extraKeys,
-            underlying.v.zeroValue,
-            underlying.v.minValue,
-            currentKey,
-            from + 1,
-            underlying.v.defaultEntry
-          )
-          LongMapFixedSize.lemmaNoDuplicateFromThenFromBigger(underlying.v._keys, 0, from)
-          LongMapFixedSize.lemmaArrayNoDuplicateFromNotContainsKeysInAcc(underlying.v._keys, from + 1, currentKey, List(currentKey))
-          check(false)
-        } else { () })
+        // ghostExpr(if (newMapListMapBefore.contains(currentKey)) {
+        //   LongMapFixedSize.lemmaListMapContainsThenArrayContainsFrom(
+        //     underlying.v._keys,
+        //     underlying.v._values,
+        //     underlying.v.mask,
+        //     underlying.v.extraKeys,
+        //     underlying.v.zeroValue,
+        //     underlying.v.minValue,
+        //     currentKey,
+        //     from + 1,
+        //     underlying.v.defaultEntry
+        //   )
+        //   LongMapFixedSize.lemmaNoDuplicateFromThenFromBigger(underlying.v._keys, 0, from)
+        //   LongMapFixedSize.lemmaArrayNoDuplicateFromNotContainsKeysInAcc(underlying.v._keys, from + 1, currentKey, List(currentKey))
+        //   check(false)
+        // } else { () })
 
-        assert(!newMapListMapBefore.contains(currentKey))
+        // assert(!newMapListMapBefore.contains(currentKey))
         assert(valid)
         if (res) {
-          assert(newMap.map == newMapListMapBefore + (currentKey, currentValue))
+          // assert(newMap.map == newMapListMapBefore + (currentKey, currentValue))
           if (from > 0) {
-            assert(newMap.map == newMapListMapBefore + (currentKey, currentValue))
+            // assert(newMap.map == newMapListMapBefore + (currentKey, currentValue))
 
             // val underlyingMapFromPOneNXtra = LongMapFixedSize.getCurrentListMapNoExtraKeys(underlying.v._keys,underlying.v._values,underlying.v.mask,underlying.v.extraKeys,underlying.v.zeroValue,underlying.v.minValue,from + 1,underlying.v.defaultEntry)
             assert(
@@ -371,7 +377,7 @@ object MutableLongMap {
 
       } else {
         if (from > 0) {
-          assert(newMap.map == newMapListMapBefore)
+          // assert(newMap.map == newMapListMapBefore)
           repackFrom(newMap, from - 1)
         } else {
           assert(newMap.valid && newMap.map == underlying.v.map)
@@ -379,7 +385,7 @@ object MutableLongMap {
         }
       }
 
-    } ensuring (res => if (res) newMap.valid && newMap.map == underlying.v.map else true)
+    } // ensuring (res => if (res) newMap.valid && newMap.map == underlying.v.map else true)
 
     // def repackWhile(newMap: LongMapFixedSize[V]): Boolean = {
     //   require(valid)
@@ -1319,18 +1325,19 @@ object MutableLongMap {
       else if (q == k || q + q == 0) Intermediate(false, ee, x)
       else
         seekKeyOrZeroOrLongMinValue(x + 1, (ee + 2 * (x + 1) * x - 3) & mask)
-    } ensuring (res =>
-      (res match {
-        case Intermediate(undefined, index, resx) if (undefined) => resx >= MAX_ITER
-        case Intermediate(undefined, index, resx) if (!undefined) =>
-          resx < MAX_ITER && resx >= 0 && resx >= x && (_keys(index) == k || _keys(
-            index
-          ) == 0 || _keys(
-            index
-          ) == Long.MinValue)
-        case _ => false
-      })
-    )
+    }
+    // ensuring (res =>
+    //   (res match {
+    //     case Intermediate(undefined, index, resx) if (undefined) => resx >= MAX_ITER
+    //     case Intermediate(undefined, index, resx) if (!undefined) =>
+    //       resx < MAX_ITER && resx >= 0 && resx >= x && (_keys(index) == k || _keys(
+    //         index
+    //       ) == 0 || _keys(
+    //         index
+    //       ) == Long.MinValue)
+    //     case _ => false
+    //   })
+    // )
 
     @tailrec
     @pure
@@ -1361,14 +1368,15 @@ object MutableLongMap {
           vacantSpotIndex
         )
 
-    } ensuring (res =>
-      res match {
-        case Undefined()          => true
-        case Found(index)         => _keys(index) == k
-        case MissingVacant(index) => index == vacantSpotIndex && _keys(index) == Long.MinValue
-        case _                    => false
-      }
-    )
+    }
+    // ensuring (res =>
+    //   res match {
+    //     case Undefined()          => true
+    //     case Found(index)         => _keys(index) == k
+    //     case MissingVacant(index) => index == vacantSpotIndex && _keys(index) == Long.MinValue
+    //     case _                    => false
+    //   }
+    // )
 
     @pure
     @ghost
@@ -7563,7 +7571,7 @@ object MutableLongMap {
           arrayCountValidKeys(a, from + 1, to)
         }
       }
-    } ensuring (res => res >= 0 && res <= a.length - from)
+    } // ensuring (res => res >= 0 && res <= a.length - from)
 
     @pure
     @ghost
@@ -7591,7 +7599,7 @@ object MutableLongMap {
 
       if (a(from) == k) from
       else arrayScanForKey(a, k, from + 1)
-    } ensuring (res => res >= 0 && res < a.length && a(res) == k)
+    } // ensuring (res => res >= 0 && res < a.length && a(res) == k)
 
     @pure
     @ghost

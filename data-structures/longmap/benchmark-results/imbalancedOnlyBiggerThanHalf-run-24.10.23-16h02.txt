@@ -4,33 +4,10 @@
 |   Number of warmup iterations: 5    |
 |-------------------------------------|
 
-
-Warming up verified map...
-Warmup iteration 0
-Warmup iteration 1
-Warmup iteration 2
-Warmup iteration 3
-Warmup iteration 4
-Warmup iteration 5
-Done warmup
-Running benchmark for verified map...
-
-----
-
-Warming up original map...
-Warmup iteration 0
-Warmup iteration 1
-Warmup iteration 2
-Warmup iteration 3
-Warmup iteration 4
-Warmup iteration 5
-Done warmup
-Running benchmark for original map...
-
 |---------------------------------------------------------------------------------------------|
-|   Time to insert 1024 elements in verified map: 3485.009 μs = 3.485009 ms = 0.003485009 s   |
-|   Time to insert 1024 elements in original map: 533.509 μs = 0.533509 ms = 5.33509E-4 s     |
-|   Ratio original/verified: 0.153086835643753                                                |
+|   Time to insert 1024 elements in verified map: 3115.028 μs = 3.115028 ms = 0.003115028 s   |
+|   Time to insert 1024 elements in original map: 553.011 μs = 0.553011 ms = 5.53011E-4 s     |
+|   Ratio original/verified: 0.17753002541229163                                              |
 |---------------------------------------------------------------------------------------------|
 
 
@@ -50,33 +27,10 @@ Running benchmark for original map...
 |   Number of warmup iterations: 5                                       |
 |------------------------------------------------------------------------|
 
-
-Warming up verified map...
-Warmup iteration 0
-Warmup iteration 1
-Warmup iteration 2
-Warmup iteration 3
-Warmup iteration 4
-Warmup iteration 5
-Done warmup
-Running benchmark for verified map...
-
-----
-
-Warming up original map...
-Warmup iteration 0
-Warmup iteration 1
-Warmup iteration 2
-Warmup iteration 3
-Warmup iteration 4
-Warmup iteration 5
-Done warmup
-Running benchmark for original map...
-
 |------------------------------------------------------------------------------------------------|
-|   Time to insert execute sequence on verified map: 2105.867 μs = 2.105867 ms = 0.002105867 s   |
-|   Time to insert execute sequence on original map: 610.625 μs = 0.610625 ms = 6.10625E-4 s     |
-|   Ratio original/verified: 0.2899637061599807                                                  |
+|   Time to insert execute sequence on verified map: 2672.221 μs = 2.672221 ms = 0.002672221 s   |
+|   Time to insert execute sequence on original map: 603.544 μs = 0.603544 ms = 6.03544E-4 s     |
+|   Ratio original/verified: 0.22585856484175523                                                 |
 |------------------------------------------------------------------------------------------------|
 
 
@@ -96,33 +50,10 @@ Running benchmark for original map...
 |   Number of warmup iterations: 5                                          |
 |---------------------------------------------------------------------------|
 
-
-Warming up verified map...
-Warmup iteration 0
-Warmup iteration 1
-Warmup iteration 2
-Warmup iteration 3
-Warmup iteration 4
-Warmup iteration 5
-Done warmup
-Running benchmark for verified map...
-
-----
-
-Warming up original map...
-Warmup iteration 0
-Warmup iteration 1
-Warmup iteration 2
-Warmup iteration 3
-Warmup iteration 4
-Warmup iteration 5
-Done warmup
-Running benchmark for original map...
-
 |----------------------------------------------------------------------------------------------------|
-|   Time to insert execute sequence on verified map: 835431.493 μs = 835.431493 ms = 0.835431493 s   |
-|   Time to insert execute sequence on original map: 382626.895 μs = 382.626895 ms = 0.382626895 s   |
-|   Ratio original/verified: 0.4579991276436116                                                      |
+|   Time to insert execute sequence on verified map: 611937.229 μs = 611.937229 ms = 0.611937229 s   |
+|   Time to insert execute sequence on original map: 335003.978 μs = 335.003978 ms = 0.335003978 s   |
+|   Ratio original/verified: 0.5474482710382702                                                      |
 |----------------------------------------------------------------------------------------------------|
 
 
@@ -142,33 +73,10 @@ Running benchmark for original map...
 |   Number of warmup iterations: 5                                                    |
 |-------------------------------------------------------------------------------------|
 
-
-Warming up verified map...
-Warmup iteration 0
-Warmup iteration 1
-Warmup iteration 2
-Warmup iteration 3
-Warmup iteration 4
-Warmup iteration 5
-Done warmup
-Running benchmark for verified map...
-
-----
-
-Warming up original map...
-Warmup iteration 0
-Warmup iteration 1
-Warmup iteration 2
-Warmup iteration 3
-Warmup iteration 4
-Warmup iteration 5
-Done warmup
-Running benchmark for original map...
-
 |----------------------------------------------------------------------------------------------------|
-|   Time to insert execute sequence on verified map: 715393.138 μs = 715.393138 ms = 0.715393138 s   |
-|   Time to insert execute sequence on original map: 495999.223 μs = 495.999223 ms = 0.495999223 s   |
-|   Ratio original/verified: 0.6933239874045312                                                      |
+|   Time to insert execute sequence on verified map: 512435.968 μs = 512.435968 ms = 0.512435968 s   |
+|   Time to insert execute sequence on original map: 350186.246 μs = 350.186246 ms = 0.350186246 s   |
+|   Ratio original/verified: 0.6833756173805504                                                      |
 |----------------------------------------------------------------------------------------------------|
 
 
@@ -188,33 +96,10 @@ Running benchmark for original map...
 |   Number of warmup iterations: 5                                                                    |
 |-----------------------------------------------------------------------------------------------------|
 
-
-Warming up verified map...
-Warmup iteration 0
-Warmup iteration 1
-Warmup iteration 2
-Warmup iteration 3
-Warmup iteration 4
-Warmup iteration 5
-Done warmup
-Running benchmark for verified map...
-
-----
-
-Warming up original map...
-Warmup iteration 0
-Warmup iteration 1
-Warmup iteration 2
-Warmup iteration 3
-Warmup iteration 4
-Warmup iteration 5
-Done warmup
-Running benchmark for original map...
-
 |----------------------------------------------------------------------------------------------------|
-|   Time to insert execute sequence on verified map: 805234.636 μs = 805.234636 ms = 0.805234636 s   |
-|   Time to insert execute sequence on original map: 554976.284 μs = 554.976284 ms = 0.554976284 s   |
-|   Ratio original/verified: 0.6892106464233115                                                      |
+|   Time to insert execute sequence on verified map: 641044.906 μs = 641.044906 ms = 0.641044906 s   |
+|   Time to insert execute sequence on original map: 546906.501 μs = 546.906501 ms = 0.546906501 s   |
+|   Ratio original/verified: 0.8531485015809486                                                      |
 |----------------------------------------------------------------------------------------------------|
 
 
@@ -234,33 +119,10 @@ Running benchmark for original map...
 |   Number of warmup iterations: 5                                                               |
 |------------------------------------------------------------------------------------------------|
 
-
-Warming up verified map...
-Warmup iteration 0
-Warmup iteration 1
-Warmup iteration 2
-Warmup iteration 3
-Warmup iteration 4
-Warmup iteration 5
-Done warmup
-Running benchmark for verified map...
-
-----
-
-Warming up original map...
-Warmup iteration 0
-Warmup iteration 1
-Warmup iteration 2
-Warmup iteration 3
-Warmup iteration 4
-Warmup iteration 5
-Done warmup
-Running benchmark for original map...
-
 |----------------------------------------------------------------------------------------------------|
-|   Time to insert execute sequence on verified map: 310550.437 μs = 310.550437 ms = 0.310550437 s   |
-|   Time to insert execute sequence on original map: 199304.032 μs = 199.304032 ms = 0.199304032 s   |
-|   Ratio original/verified: 0.6417766914943996                                                      |
+|   Time to insert execute sequence on verified map: 310786.593 μs = 310.786593 ms = 0.310786593 s   |
+|   Time to insert execute sequence on original map: 262730.967 μs = 262.730967 ms = 0.262730967 s   |
+|   Ratio original/verified: 0.8453741986225255                                                      |
 |----------------------------------------------------------------------------------------------------|
 
 
@@ -280,33 +142,10 @@ Running benchmark for original map...
 |   Number of warmup iterations: 5                                                               |
 |------------------------------------------------------------------------------------------------|
 
-
-Warming up verified map...
-Warmup iteration 0
-Warmup iteration 1
-Warmup iteration 2
-Warmup iteration 3
-Warmup iteration 4
-Warmup iteration 5
-Done warmup
-Running benchmark for verified map...
-
-----
-
-Warming up original map...
-Warmup iteration 0
-Warmup iteration 1
-Warmup iteration 2
-Warmup iteration 3
-Warmup iteration 4
-Warmup iteration 5
-Done warmup
-Running benchmark for original map...
-
 |------------------------------------------------------------------------------------------------------|
-|   Time to insert execute sequence on verified map: 2719989.767 μs = 2719.989767 ms = 2.719989767 s   |
-|   Time to insert execute sequence on original map: 1903415.636 μs = 1903.415636 ms = 1.903415636 s   |
-|   Ratio original/verified: 0.6997877929884139                                                        |
+|   Time to insert execute sequence on verified map: 1960279.955 μs = 1960.279955 ms = 1.960279955 s   |
+|   Time to insert execute sequence on original map: 2022296.59 μs = 2022.29659 ms = 2.02229659 s      |
+|   Ratio original/verified: 1.0316366215151143                                                        |
 |------------------------------------------------------------------------------------------------------|
 
 
@@ -326,32 +165,8 @@ Running benchmark for original map...
 |   Number of warmup iterations: 5                                                               |
 |------------------------------------------------------------------------------------------------|
 
-
-Warming up verified map...
-Warmup iteration 0
-Warmup iteration 1
-Warmup iteration 2
-Warmup iteration 3
-Warmup iteration 4
-Warmup iteration 5
-Done warmup
-Running benchmark for verified map...
-
-----
-
-Warming up original map...
-Warmup iteration 0
-Warmup iteration 1
-Warmup iteration 2
-Warmup iteration 3
-Warmup iteration 4
-Warmup iteration 5
-Done warmup
-Running benchmark for original map...
-
 |-----------------------------------------------------------------------------------------------------------|
-|   Time to insert execute sequence on verified map: 4.227336544E7 μs = 42273.36544 ms = 42.27336544 s      |
-|   Time to insert execute sequence on original map: 3.2107850394E7 μs = 32107.850394 ms = 32.107850394 s   |
-|   Ratio original/verified: 0.7595290807771561                                                             |
+|   Time to insert execute sequence on verified map: 4.0426983111E7 μs = 40426.983111 ms = 40.426983111 s   |
+|   Time to insert execute sequence on original map: 3.2317215334E7 μs = 32317.215334 ms = 32.317215334 s   |
+|   Ratio original/verified: 0.7993971562326804                                                             |
 |-----------------------------------------------------------------------------------------------------------|
-

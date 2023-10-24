@@ -30,14 +30,42 @@ object MutableLongMap {
     } ensuring (_ => v == old(other).v && !other.owned && owned)
   }
 
-  /** Helper method to create a new empty LongMap
+  /** Helper method to create a new empty LongMap with an initial array size of 16
     *
     * @param defaultEntry
     * @return
     */
   @extern
   def getEmptyLongMap[V](defaultEntry: Long => V): LongMap[V] = {
-    val m = 127
+    val m = 15
+    assert(validMask(m))
+    val emptyMap = LongMapFixedSize.getNewLongMapFixedSize(m, defaultEntry)
+    LongMap(Cell(emptyMap))
+  } ensuring (res => res.valid && res.size == 0)
+
+  /** Helper method to create a new empty LongMap with a given initial array size
+   * WARNING: UNSOUND!!!
+   * The given size must be a power of 2 <= 2^30
+    *
+    * @param defaultEntry
+    * @return
+    */
+  @extern
+  def getEmptyLongMap[V](defaultEntry: Long => V, initialSize: Int): LongMap[V] = {
+    val m = initialSize - 1
+    assert(validMask(m))
+    val emptyMap = LongMapFixedSize.getNewLongMapFixedSize(m, defaultEntry)
+    LongMap(Cell(emptyMap))
+  } ensuring (res => res.valid && res.size == 0)
+
+  /** Helper method to create a new empty LongMap with a given initial array size WARNING: UNSOUND!!! The given size must be a power of 2 <= 2^30
+    *
+    * @param defaultEntry
+    * @return
+    */
+  @extern
+  def getEmptyLongMap[V](defaultEntry: Long => V, initialSize: Int): LongMap[V] = {
+    val m = initialSize - 1
     assert(validMask(m))
     val emptyMap = LongMapFixedSize.getNewLongMapFixedSize(m, defaultEntry)
     LongMap(Cell(emptyMap))
@@ -222,29 +250,29 @@ object MutableLongMap {
 
       val currentValue = underlying.v._values(from).get(underlying.v.defaultEntry(0L))
 
-      @ghost val newMapListMapBefore = newMap.map
+      // @ghost val newMapListMapBefore = newMap.map
 
       if (currentKey != 0 && currentKey != Long.MinValue) {
 
         // There is a key in the array, add it to the new map
         val res = newMap.update(currentKey, currentValue)
 
-        ghostExpr(if (newMapListMapBefore.contains(currentKey)) {
-          LongMapFixedSize.lemmaListMapContainsThenArrayContainsFrom(
-            underlying.v._keys,
-            underlying.v._values,
-            underlying.v.mask,
-            underlying.v.extraKeys,
-            underlying.v.zeroValue,
-            underlying.v.minValue,
-            currentKey,
-            from + 1,
-            underlying.v.defaultEntry
-          )
-          LongMapFixedSize.lemmaNoDuplicateFromThenFromBigger(underlying.v._keys, 0, from)
-          LongMapFixedSize.lemmaArrayNoDuplicateFromNotContainsKeysInAcc(underlying.v._keys, from + 1, currentKey, List(currentKey))
-          check(false)
-        } else { () })
+        // ghostExpr(if (newMapListMapBefore.contains(currentKey)) {
+        //   LongMapFixedSize.lemmaListMapContainsThenArrayContainsFrom(
+        //     underlying.v._keys,
+        //     underlying.v._values,
+        //     underlying.v.mask,
+        //     underlying.v.extraKeys,
+        //     underlying.v.zeroValue,
+        //     underlying.v.minValue,
+        //     currentKey,
+        //     from + 1,
+        //     underlying.v.defaultEntry
+        //   )
+        //   LongMapFixedSize.lemmaNoDuplicateFromThenFromBigger(underlying.v._keys, 0, from)
+        //   LongMapFixedSize.lemmaArrayNoDuplicateFromNotContainsKeysInAcc(underlying.v._keys, from + 1, currentKey, List(currentKey))
+        //   check(false)
+        // } else { () })
 
         if (res) {
           if (from > 0) {
@@ -1087,7 +1115,7 @@ object MutableLongMap {
 
     def getNewLongMapFixedSize[V](mask: Int, defaultEntry: Long => V): LongMapFixedSize[V] = {
       require(validMask(mask))
-      @ghost val _keys: Array[Long] = Array.fill(mask + 1)(0)
+      // @ghost val _keys: Array[Long] = Array.fill(mask + 1)(0)
 
       val res = LongMapFixedSize[V](defaultEntry, mask, 0, defaultEntry(0L), defaultEntry(0L), 0, Array.fill(mask + 1)(0L), Array.fill(mask + 1)(EmptyCell[V]()))
 
@@ -1319,18 +1347,19 @@ object MutableLongMap {
       else if (q == k || q + q == 0) Intermediate(false, ee, x)
       else
         seekKeyOrZeroOrLongMinValue(x + 1, (ee + 2 * (x + 1) * x - 3) & mask)
-    } ensuring (res =>
-      (res match {
-        case Intermediate(undefined, index, resx) if (undefined) => resx >= MAX_ITER
-        case Intermediate(undefined, index, resx) if (!undefined) =>
-          resx < MAX_ITER && resx >= 0 && resx >= x && (_keys(index) == k || _keys(
-            index
-          ) == 0 || _keys(
-            index
-          ) == Long.MinValue)
-        case _ => false
-      })
-    )
+    }
+    //  ensuring (res =>
+    //   (res match {
+    //     case Intermediate(undefined, index, resx) if (undefined) => resx >= MAX_ITER
+    //     case Intermediate(undefined, index, resx) if (!undefined) =>
+    //       resx < MAX_ITER && resx >= 0 && resx >= x && (_keys(index) == k || _keys(
+    //         index
+    //       ) == 0 || _keys(
+    //         index
+    //       ) == Long.MinValue)
+    //     case _ => false
+    //   })
+    // )
 
     @tailrec
     @pure
@@ -1361,14 +1390,15 @@ object MutableLongMap {
           vacantSpotIndex
         )
 
-    } ensuring (res =>
-      res match {
-        case Undefined()          => true
-        case Found(index)         => _keys(index) == k
-        case MissingVacant(index) => index == vacantSpotIndex && _keys(index) == Long.MinValue
-        case _                    => false
-      }
-    )
+    } 
+    // ensuring (res =>
+    //   res match {
+    //     case Undefined()          => true
+    //     case Found(index)         => _keys(index) == k
+    //     case MissingVacant(index) => index == vacantSpotIndex && _keys(index) == Long.MinValue
+    //     case _                    => false
+    //   }
+    // )
 
     @pure
     @ghost

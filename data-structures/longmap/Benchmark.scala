@@ -1,12 +1,12 @@
 // to run it:
 // scala-cli -J -Xmx24576m Benchmark.scala MutableLongMap.scala StrictlyOrderedLongListMap.scala  $(find /localhome/chassot/stainless/frontends/library/stainless/ -name "*.scala")
 
-import ch.epfl.chassot.MutableLongMap.*
+import ch.epfl.chassot.MutableLongMap
 import scala.collection.mutable.LongMap
 
 object MutableLongMapBenchmark {
   def benchmarkVerifiedMap(n: Int, initialArraySize: Int): (Boolean, Long) = {
-    val m = getEmptyLongMap(l => -1L, initialArraySize)
+    val m = MutableLongMap.getEmptyLongMap(l => -1L, initialArraySize)
     // val n = Math.pow(2, 10).toInt
     val t1 = System.nanoTime()
     for (i <- 0 to n) {
@@ -36,7 +36,7 @@ object MutableLongMapBenchmark {
 }
 
 @main def main(): Unit = {
-  val n = Math.pow(2, 5).toInt
+  val n = Math.pow(2, 10).toInt
   val initialArraySize = 16
   val warmupIterationsNumber = 5
   println("Running bechmark with the following parameters:")
@@ -70,7 +70,7 @@ object MutableLongMapBenchmark {
     println("ERROR: original map is not correct")
     return
   }
-  println(f"Time to insert $n elements in verified map: $timeVerified μs = ${timeVerified.toDouble / 1000} ms = ${timeVerified.toDouble / 1000000} s")
-  println(f"Time to insert $n elements in original map: $timeOriginal μs = ${timeOriginal.toDouble / 1000} ms = ${timeOriginal.toDouble / 1000000} s")
+  println(f"Time to insert $n elements in verified map: ${timeVerified/1000} μs = ${timeVerified.toDouble / 1000000} ms = ${timeVerified.toDouble / 1000000000} s")
+  println(f"Time to insert $n elements in original map: ${timeOriginal/1000} μs = ${timeOriginal.toDouble / 1000000} ms = ${timeOriginal.toDouble / 1000000000} s")
   println(f"Ratio original/verified: ${timeOriginal.toDouble / timeVerified.toDouble}")
 }

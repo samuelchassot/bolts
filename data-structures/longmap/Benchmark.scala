@@ -10,7 +10,7 @@ object MutableLongMapBenchmark {
     // val n = Math.pow(2, 10).toInt
     val t1 = System.nanoTime()
     for (i <- 0 to n) {
-      val res = m.update(i, i)
+      m.update(i, i)
     }
     val t2 = System.nanoTime()
 
@@ -25,7 +25,7 @@ object MutableLongMapBenchmark {
     // val n = Math.pow(2, 10).toInt
     val t1 = System.nanoTime()
     for (i <- 0 to n) {
-      val res = m.update(i, i)
+      m.update(i, i)
     }
     val t2 = System.nanoTime()
 
@@ -64,10 +64,12 @@ object MutableLongMapBenchmark {
   def runSequentialBenchmark(n: Int): Unit = {
     val initialArraySize = 16
     val warmupIterationsNumber = 5
-    println("Running bechmark with the following parameters:")
-    println(f"\tNumber of elements to add: $n")
-    println(f"\tInitial array size: $initialArraySize")
-    println(f"\tNumber of warmup iterations: $warmupIterationsNumber")
+
+    val numberElmtStr = f"Number of elements to add: $n"
+    val initArraySizeStr = f"Initial array size: $initialArraySize"
+    val warmupItStr = f"Number of warmup iterations: $warmupIterationsNumber"
+
+    println(prettyPrintInFrame(List(numberElmtStr, initArraySizeStr, warmupItStr)))
 
     println("Warming up verified map...")
     for (i <- 0 to warmupIterationsNumber) {
@@ -77,6 +79,8 @@ object MutableLongMapBenchmark {
     println("Done warmup")
     println("Running benchmark for verified map...")
     val (correctVerified, timeVerified) = MutableLongMapBenchmark.benchmarkVerifiedMap(n, initialArraySize)
+
+    println("\n----\n")
 
     println("Warming up original map...")
     for (i <- 0 to warmupIterationsNumber) {
@@ -95,9 +99,13 @@ object MutableLongMapBenchmark {
       println("ERROR: original map is not correct")
       return
     }
-    println(f"Time to insert $n elements in verified map: ${timeVerified / 1000} μs = ${timeVerified.toDouble / 1000000} ms = ${timeVerified.toDouble / 1000000000} s")
-    println(f"Time to insert $n elements in original map: ${timeOriginal / 1000} μs = ${timeOriginal.toDouble / 1000000} ms = ${timeOriginal.toDouble / 1000000000} s")
-    println(f"Ratio original/verified: ${timeOriginal.toDouble / timeVerified.toDouble}")
+    val timeVerStrf = f"Time to insert $n elements in verified map: ${timeVerified.toDouble / 1000} μs = ${timeVerified.toDouble / 1000000} ms = ${timeVerified.toDouble / 1000000000} s"
+    val timeOrigStr = f"Time to insert $n elements in original map: ${timeOriginal.toDouble / 1000} μs = ${timeOriginal.toDouble / 1000000} ms = ${timeOriginal.toDouble / 1000000000} s"
+    val timeRatioStr = f"Ratio original/verified: ${timeOriginal.toDouble / timeVerified.toDouble}"
+
+    println("")
+    println(prettyPrintInFrame(List(timeVerStrf, timeOrigStr, timeRatioStr)))
+
   }
 
   def loadListFromFile(p: String): Iterable[(String, Long, Option[Long])] = {
@@ -112,16 +120,21 @@ object MutableLongMapBenchmark {
     l
   }
 
-  def runBenchmarkWithSequences(p: String): Unit = {
-    val s: Iterable[(String, Long, Option[Long])] = loadListFromFile(p)
+  def runBenchmarkWithSequences(title: String, p: String, repetitions: Int = 1): Unit = {
+    val loaded: Iterable[(String, Long, Option[Long])] = loadListFromFile(p)
+    val s: Iterable[(String, Long, Option[Long])] = (1 to repetitions).flatMap(_ => loaded)
 
     val initialArraySize = 16
     val warmupIterationsNumber = 5
-    println("Running bechmark with the following parameters:")
-    println(f"\tSequence file: $p")
-    println(f"\tSequence length: ${s.size}")
-    println(f"\tInitial array size: $initialArraySize")
-    println(f"\tNumber of warmup iterations: $warmupIterationsNumber")
+
+    val titleStr = f"Title: $title"
+    val seqFileStr = f"Sequence file: $p"
+    val seqLengthStr = f"Sequence length: ${s.size}"
+    val seqRepetitionsStr = f"Number of repetitions of the seq: $repetitions"
+    val initArraySizeStr = f"Initial array size: $initialArraySize"
+    val warmupItStr = f"Number of warmup iterations: $warmupIterationsNumber"
+
+    println(prettyPrintInFrame(List(titleStr, seqFileStr, seqLengthStr, seqRepetitionsStr, initArraySizeStr, warmupItStr)))
 
     println("Warming up verified map...")
     for (i <- 0 to warmupIterationsNumber) {
@@ -134,6 +147,7 @@ object MutableLongMapBenchmark {
     val mVerified = MutableLongMap.getEmptyLongMap(l => -1L, initialArraySize)
     val timeVerified = benchmarkWithSeq(mVerified, s)
 
+    println("\n----\n")
     println("Warming up original map...")
     for (i <- 0 to warmupIterationsNumber) {
       println(f"Warmup iteration $i")
@@ -145,20 +159,59 @@ object MutableLongMapBenchmark {
     val mOriginal = new LongMap[Long](initialArraySize)
     val timeOriginal = benchmarkWithSeq(mOriginal, s)
 
-    println(f"Time to insert execute sequence in file $p in verified map: ${timeVerified / 1000} μs = ${timeVerified.toDouble / 1000000} ms = ${timeVerified.toDouble / 1000000000} s")
-    println(f"Time to insert execute sequence in file $p in original map: ${timeOriginal / 1000} μs = ${timeOriginal.toDouble / 1000000} ms = ${timeOriginal.toDouble / 1000000000} s")
-    println(f"Ratio original/verified: ${timeOriginal.toDouble / timeVerified.toDouble}")
+    val timeVerStrf = f"Time to insert execute sequence on verified map: ${timeVerified.toDouble / 1000} μs = ${timeVerified.toDouble / 1000000} ms = ${timeVerified.toDouble / 1000000000} s"
+    val timeOrigStr = f"Time to insert execute sequence on original map: ${timeOriginal.toDouble / 1000} μs = ${timeOriginal.toDouble / 1000000} ms = ${timeOriginal.toDouble / 1000000000} s"
+    val timeRatioStr = f"Ratio original/verified: ${timeOriginal.toDouble / timeVerified.toDouble}"
+    println("")
+    println(prettyPrintInFrame(List(timeVerStrf, timeOrigStr, timeRatioStr)))
 
   }
+
+  def prettyPrintInFrame(s: List[String]): String = (List((List("|") ++ (1 to (s.map(_.size).max + 6)).map(_ => "-") ++ List("|")).mkString("")) ++ s.map(st => f"|   $st${(1 to (s.map(_.size).max - st.size)).map(_ => " ").mkString("")}   |") ++ List((List("|") ++ (1 to (s.map(_.size).max + 6)).map(_ => "-") ++ List("|")).mkString(""))).mkString("\n") + "\n\n"
 }
 
 @main def main(): Unit = {
   MutableLongMapBenchmark.runSequentialBenchmark(Math.pow(2, 10).toInt)
-  println("\n\n\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\n\n")
-  MutableLongMapBenchmark.runBenchmarkWithSequences("./benchmark-sequences/random-1000-update-remove.txt")
-  println("\n\n\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\n\n")
-  MutableLongMapBenchmark.runBenchmarkWithSequences("./benchmark-sequences/add-2-to-20-then-remove-them.txt")
-  println("\n\n\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\n\n")
-  MutableLongMapBenchmark.runBenchmarkWithSequences("./benchmark-sequences/add-2-to-20-then-remove-then-add-again.txt")
 
+  println("\n\n\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\n\n")
+
+  MutableLongMapBenchmark.runBenchmarkWithSequences("Random 1000 update and remove operations", "./benchmark-sequences/random-1000-update-remove.txt")
+
+  println("\n\n\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\n\n")
+
+  MutableLongMapBenchmark.runBenchmarkWithSequences("Update 2^^20 keys, then remove them", "./benchmark-sequences/add-2-to-20-then-remove-them.txt")
+
+  println("\n\n\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\n\n")
+
+  MutableLongMapBenchmark.runBenchmarkWithSequences("Update 2^^20 keys, then remove, then update them again", "./benchmark-sequences/add-2-to-20-then-remove-then-add-again.txt")
+
+  println("\n\n\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\n\n")
+
+  MutableLongMapBenchmark.runBenchmarkWithSequences(
+    "Update 2^^20 keys, then remove half, then update all, randomised order",
+    "./benchmark-sequences/add-2-to-20-then-remove-half-then-add-again-randomised.txt"
+  )
+
+  println("\n\n\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\n\n")
+
+  MutableLongMapBenchmark.runBenchmarkWithSequences(
+    "Update 2^^19 keys, then remove, then update them again, randomised order",
+    "./benchmark-sequences/add-2-to-19-then-remove-then-add-again-randomised.txt"
+  )
+
+  println("\n\n\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\n\n")
+
+  MutableLongMapBenchmark.runBenchmarkWithSequences(
+    "Update 2^^19 keys, then remove, then update them again, randomised order",
+    "./benchmark-sequences/add-2-to-19-then-remove-then-add-again-randomised.txt",
+    10
+  )
+
+  println("\n\n\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\n\n")
+
+  MutableLongMapBenchmark.runBenchmarkWithSequences(
+    "Update 2^^19 keys, then remove, then update them again, randomised order",
+    "./benchmark-sequences/add-2-to-19-then-remove-then-add-again-randomised.txt",
+    200
+  )
 }

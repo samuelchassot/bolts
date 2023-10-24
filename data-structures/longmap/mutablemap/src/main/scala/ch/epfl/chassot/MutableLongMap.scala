@@ -406,7 +406,6 @@ object MutableLongMap {
 
     //     @ghost val newMapListMapBefore = newMap.map
 
-
     //     val currentKey = underlying.v._keys(i)
     //     val currentValue = underlying.v._values(i).get(underlying.v.defaultEntry(0L))
     //     if (currentKey != 0 && currentKey != Long.MinValue) {
@@ -437,7 +436,7 @@ object MutableLongMap {
     //       }
     //     }
     //     i = i - 1
-    //   }).invariant(i >= -1 && i <= underlying.v._keys.length && 
+    //   }).invariant(i >= -1 && i <= underlying.v._keys.length &&
     //       valid && newMap.valid &&
     //       LongMapFixedSize.getCurrentListMap(
     //         underlying.v._keys,
@@ -496,7 +495,8 @@ object MutableLongMap {
 
   private final val MAX_ITER = 4096 // arbitrary
 
-  /** A Map with keys of type Long and values of type Long mask must be a valid mask, i.e., 2^n - 1. The smallest possible mask is 0 and the biggest is 0x3fffffff _keys and _values must be initialized to an array of length mask + 1, containing all 0 values, i.e., Array.fill(mask + 1)(0) extraKeys must be initialized to 0 _size must be initialized to 0
+  /** A Map with keys of type Long and values of type Long mask must be a valid mask, i.e., 2^n - 1. The smallest possible mask is 0 and the biggest is 0x3fffffff _keys and _values must be initialized to an
+    * array of length mask + 1, containing all 0 values, i.e., Array.fill(mask + 1)(0) extraKeys must be initialized to 0 _size must be initialized to 0
     *
     * @param mask
     * @param extraKeys
@@ -1119,7 +1119,7 @@ object MutableLongMap {
       require(validMask(mask))
       @ghost val _keys: Array[Long] = Array.fill(mask + 1)(0)
 
-      val res = LongMapFixedSize[V](defaultEntry, mask, 0, defaultEntry(0L), defaultEntry(0L), 0,Array.fill(mask + 1)(0L), Array.fill(mask + 1)(EmptyCell[V]()))
+      val res = LongMapFixedSize[V](defaultEntry, mask, 0, defaultEntry(0L), defaultEntry(0L), 0, Array.fill(mask + 1)(0L), Array.fill(mask + 1)(EmptyCell[V]()))
 
       assert(res.simpleValid)
       assert(res._keys == Array.fill(mask + 1)(0L))

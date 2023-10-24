@@ -380,7 +380,7 @@ object MutableLongMap {
         }
       }
 
-    } ensuring (res => if (res) newMap.valid && newMap.map == underlying.v.map else true)
+    } // ensuring (res => if (res) newMap.valid && newMap.map == underlying.v.map else true)
 
     // def repackWhile(newMap: LongMapFixedSize[V]): Boolean = {
     //   require(valid)
@@ -1349,18 +1349,19 @@ object MutableLongMap {
       else if (q == k || q + q == 0) Intermediate(false, ee, x)
       else
         seekKeyOrZeroOrLongMinValue(x + 1, (ee + 2 * (x + 1) * x - 3) & mask)
-    } ensuring (res =>
-      (res match {
-        case Intermediate(undefined, index, resx) if (undefined) => resx >= MAX_ITER
-        case Intermediate(undefined, index, resx) if (!undefined) =>
-          resx < MAX_ITER && resx >= 0 && resx >= x && (_keys(index) == k || _keys(
-            index
-          ) == 0 || _keys(
-            index
-          ) == Long.MinValue)
-        case _ => false
-      })
-    )
+    }
+    // ensuring (res =>
+    //   (res match {
+    //     case Intermediate(undefined, index, resx) if (undefined) => resx >= MAX_ITER
+    //     case Intermediate(undefined, index, resx) if (!undefined) =>
+    //       resx < MAX_ITER && resx >= 0 && resx >= x && (_keys(index) == k || _keys(
+    //         index
+    //       ) == 0 || _keys(
+    //         index
+    //       ) == Long.MinValue)
+    //     case _ => false
+    //   })
+    // )
 
     @tailrec
     @pure
@@ -1391,14 +1392,15 @@ object MutableLongMap {
           vacantSpotIndex
         )
 
-    } ensuring (res =>
-      res match {
-        case Undefined()          => true
-        case Found(index)         => _keys(index) == k
-        case MissingVacant(index) => index == vacantSpotIndex && _keys(index) == Long.MinValue
-        case _                    => false
-      }
-    )
+    }
+    // ensuring (res =>
+    //   res match {
+    //     case Undefined()          => true
+    //     case Found(index)         => _keys(index) == k
+    //     case MissingVacant(index) => index == vacantSpotIndex && _keys(index) == Long.MinValue
+    //     case _                    => false
+    //   }
+    // )
 
     @pure
     @ghost

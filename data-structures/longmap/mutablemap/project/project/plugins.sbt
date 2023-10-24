@@ -1,0 +1,1 @@
+// addSbtPlugin("ch.epfl.lara" % "StainlessPlugin" % "0.9.8.1-6-g9eac74a-SNAPSHOT")

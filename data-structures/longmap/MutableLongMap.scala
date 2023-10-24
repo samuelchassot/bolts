@@ -406,6 +406,7 @@ object MutableLongMap {
 
     //     @ghost val newMapListMapBefore = newMap.map
 
+
     //     val currentKey = underlying.v._keys(i)
     //     val currentValue = underlying.v._values(i).get(underlying.v.defaultEntry(0L))
     //     if (currentKey != 0 && currentKey != Long.MinValue) {
@@ -436,7 +437,7 @@ object MutableLongMap {
     //       }
     //     }
     //     i = i - 1
-    //   }).invariant(i >= -1 && i <= underlying.v._keys.length &&
+    //   }).invariant(i >= -1 && i <= underlying.v._keys.length && 
     //       valid && newMap.valid &&
     //       LongMapFixedSize.getCurrentListMap(
     //         underlying.v._keys,
@@ -1118,7 +1119,7 @@ object MutableLongMap {
       require(validMask(mask))
       @ghost val _keys: Array[Long] = Array.fill(mask + 1)(0)
 
-      val res = LongMapFixedSize[V](defaultEntry, mask, 0, defaultEntry(0L), defaultEntry(0L), 0, Array.fill(mask + 1)(0L), Array.fill(mask + 1)(EmptyCell[V]()))
+      val res = LongMapFixedSize[V](defaultEntry, mask, 0, defaultEntry(0L), defaultEntry(0L), 0,Array.fill(mask + 1)(0L), Array.fill(mask + 1)(EmptyCell[V]()))
 
       assert(res.simpleValid)
       assert(res._keys == Array.fill(mask + 1)(0L))

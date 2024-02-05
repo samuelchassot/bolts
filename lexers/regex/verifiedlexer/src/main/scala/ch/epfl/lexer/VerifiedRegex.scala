@@ -10,34 +10,6 @@ import scala.runtime.Statics
 
 object VerifiedRegex {
   abstract sealed class Regex[C] {}
-  def validRegex[C](r: Regex[C]): Boolean = r match {
-    case ElementMatch(c)    => true
-    case Star(r)            => !nullable(r) && !isEmptyLang(r) && validRegex(r)
-    case Union(rOne, rTwo)  => validRegex(rOne) && validRegex(rTwo)
-    case Concat(rOne, rTwo) => validRegex(rOne) && validRegex(rTwo)
-    case EmptyExpr()        => true
-    case EmptyLang()        => true
-  }
-
-  def regexDepth[C](r: Regex[C]): BigInt ={
-    decreases(r)
-     r match {
-    case ElementMatch(c)    => BigInt(1)
-    case Star(r)            => BigInt(1) + regexDepth(r)
-    case Union(rOne, rTwo)  => BigInt(1) + Utils.maxBigInt(regexDepth(rOne), regexDepth(rTwo))
-    case Concat(rOne, rTwo) => BigInt(1) + Utils.maxBigInt(regexDepth(rOne), regexDepth(rTwo))
-    case EmptyExpr()        => BigInt(1)
-    case EmptyLang()        => BigInt(1)
-  }
-} ensuring (res =>
-    res > 0 && (r match {
-      case Union(rOne, rTwo)  => res > regexDepth(rOne) && res > regexDepth(rTwo)
-      case Concat(rOne, rTwo) => res > regexDepth(rOne) && res > regexDepth(rTwo)
-      case Star(r)            => res > regexDepth(r)
-      case _                  => res == BigInt(1)
-    })
-  )
-
   case class ElementMatch[C](c: C) extends Regex[C]
   case class Star[C](reg: Regex[C]) extends Regex[C]
   case class Union[C](regOne: Regex[C], regTwo: Regex[C]) extends Regex[C]
@@ -50,6 +22,34 @@ object VerifiedRegex {
   /** Regex that accepts nothing: represents the empty language
     */
   case class EmptyLang[C]() extends Regex[C]
+
+  def validRegex[C](r: Regex[C]): Boolean = r match {
+    case ElementMatch(c)    => true
+    case Star(r)            => !nullable(r) && !isEmptyLang(r) && validRegex(r)
+    case Union(rOne, rTwo)  => validRegex(rOne) && validRegex(rTwo)
+    case Concat(rOne, rTwo) => validRegex(rOne) && validRegex(rTwo)
+    case EmptyExpr()        => true
+    case EmptyLang()        => true
+  }
+
+  def regexDepth[C](r: Regex[C]): BigInt = {
+    decreases(r)
+    r match {
+      case ElementMatch(c)    => BigInt(1)
+      case Star(r)            => BigInt(1) + regexDepth(r)
+      case Union(rOne, rTwo)  => BigInt(1) + Utils.maxBigInt(regexDepth(rOne), regexDepth(rTwo))
+      case Concat(rOne, rTwo) => BigInt(1) + Utils.maxBigInt(regexDepth(rOne), regexDepth(rTwo))
+      case EmptyExpr()        => BigInt(1)
+      case EmptyLang()        => BigInt(1)
+    }
+  } ensuring (res =>
+    res > 0 && (r match {
+      case Union(rOne, rTwo)  => res > regexDepth(rOne) && res > regexDepth(rTwo)
+      case Concat(rOne, rTwo) => res > regexDepth(rOne) && res > regexDepth(rTwo)
+      case Star(r)            => res > regexDepth(r)
+      case _                  => res == BigInt(1)
+    })
+  )
 
   def usedCharacters[C](r: Regex[C]): List[C] = {
     r match {
@@ -134,7 +134,7 @@ object VerifiedRegex {
       case Union(rOne, rTwo) => r1 == rOne && r2 == rTwo
     }
   }
-  
+
   @inline
   def isConcat[C](r: Regex[C]): Boolean = {
     r match {
@@ -263,7 +263,8 @@ object VerifiedRegexMatcher {
     }
   } ensuring (matchR(r, s) == matchRSpec(r, s))
 
-  /** Enumerate all cuts in s and returns one that works, i.e., r1 matches s1 and r2 matches s2 Specifically, it is the right most one, i.e., s2 is the largest, if multiple exists Returns None is no valid cut exists
+  /** Enumerate all cuts in s and returns one that works, i.e., r1 matches s1 and r2 matches s2 Specifically, it is the right most one, i.e., s2 is the largest, if multiple exists Returns None is no valid cut
+    * exists
     *
     * @param r1
     * @param r2

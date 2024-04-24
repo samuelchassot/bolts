@@ -305,7 +305,13 @@ object TupleListOpsGenK {
   }.ensuring(res => 
     invariantList(res) && 
     !containsKey(res, key) &&
-    getKeysList(res).content == getKeysList(l).content -- Set(key)
+    getKeysList(res).content == getKeysList(l).content -- Set(key) &&
+    (if(containsKey(l, key)) {
+      lemmaContainsKeyImpliesGetValueByKeyDefined(l, key)
+      res.content == l.content -- Set((key, getValueByKey(l, key).get))
+    } else {
+      res.content == l.content
+    })
     )
 
   def noDuplicatedKeys[K, B](l: List[(K, B)]): Boolean = {
@@ -329,6 +335,43 @@ object TupleListOpsGenK {
   }
 
   // ----------- LEMMAS -----------------------------------------------------
+
+  @opaque 
+  @inlineOnce
+  def lemmaContainsTwoDifferentTuplesSameKeyImpossible[K, B](
+      l: List[(K, B)],
+      key: K,
+      v1: B,
+      v2: B
+  ): Unit = {
+    require(l.contains((key, v1)) && l.contains((key, v2)))
+    require(invariantList(l))
+    decreases(l)
+
+    l match {
+      case Cons(head, tl) if (head._1 != key) =>
+        lemmaContainsTwoDifferentTuplesSameKeyImpossible(tl, key, v1, v2)
+      case Cons(head, tl) if (head._1 == key) =>
+        if (head._2 == v1) {
+          if(v1 != v2){
+            lemmaContainsTupleThenContainsKey(tl, key, v2)
+            check(false)
+          }
+        } else {
+          if(head._2 != v2){
+            lemmaContainsTupleThenContainsKey(tl, key, v2)
+            lemmaContainsTupleThenContainsKey(tl, key, v1)
+            check(false)
+          }
+          assert(head._2 == v2)
+          if (v1 != v2) {
+            lemmaContainsTupleThenContainsKey(tl, key, v1)
+            check(false)
+          }
+        }
+      case _ => ()
+    }
+  }.ensuring(_ => v1 == v2)
 
   @opaque
   @inlineOnce
@@ -374,6 +417,7 @@ object TupleListOpsGenK {
     require(invariantList(l))
     require(keys.forall(k => containsKey(l, k)))
     require(!containsKey(l, other._1))
+    decreases(keys)
 
     keys match {
       case Cons(head, tl) => {
@@ -1281,4 +1325,197 @@ object ListMapLemmas {
       (key, value)
     ) == (lm + (key, value)).toList.content
   )
+
+  // Equivalence LEMMAS ----------------------------------------------------------------------------------------------------------------
+  @opaque
+  @inlineOnce
+  def lemmaAddToEqMapsPreservesEq[K, B](
+      lm1: ListMap[K, B],
+      lm2: ListMap[K, B],
+      key: K,
+      value: B
+  ): Unit = {
+    require(lm1.eq(lm2))
+    if(lm1.contains(key)) {
+      lemmaAddToEqMapsPreservesEqIfContainsKey(lm1, lm2, key, value)
+      check((lm1 + (key, value)).eq(lm2 + (key, value)))
+    } else {
+      lemmaAddToEqMapsPreservesEqIfDoesNotContainKey(lm1, lm2, key, value)
+      check((lm1 + (key, value)).eq(lm2 + (key, value)))
+    }
+
+  }.ensuring(_ => (lm1 + (key, value)).eq(lm2 + (key, value)))
+
+  @opaque
+  @inlineOnce
+  def lemmaAddToEqMapsPreservesEqIfDoesNotContainKey[K, B](
+      lm1: ListMap[K, B],
+      lm2: ListMap[K, B],
+      key: K,
+      value: B
+  ): Unit = {
+    require(lm1.eq(lm2))
+    require(!lm1.contains(key))
+    decreases(lm1.toList.size)
+
+    assert(!lm1.contains(key))
+    if(lm2.contains(key)){
+      TupleListOpsGenK.lemmaContainsKeyImpliesGetValueByKeyDefined(lm2.toList, key)
+      TupleListOpsGenK.lemmaGetValueByKeyImpliesContainsTuple(lm2.toList, key, lm2.apply(key))
+      assert(lm2.toList.contains((key, lm2.apply(key))))
+      assert(lm1.toList.contains((key, lm2.apply(key))))
+      TupleListOpsGenK.lemmaContainsTupleThenContainsKey(lm1.toList, key, lm2.apply(key))
+      check(false)
+    }
+    assert(!lm2.contains(key))
+    
+
+    
+    check((lm1 + (key, value)).eq(lm2 + (key, value)))
+    
+  }.ensuring(_ => (lm1 + (key, value)).eq(lm2 + (key, value)))
+
+  @opaque
+  @inlineOnce
+  def lemmaAddToEqMapsPreservesEqIfContainsKey[K, B](
+      lm1: ListMap[K, B],
+      lm2: ListMap[K, B],
+      key: K,
+      value: B
+  ): Unit = {
+    require(lm1.eq(lm2))
+    require(lm1.contains(key))
+    decreases(lm1.toList.size)
+
+    lemmaEquivalentThenSameContains(lm1, lm2, key)
+    lemmaEquivalentGetSameValue(lm1, lm2, key)
+
+    val v = lm1.apply(key)
+    val v2 = lm2.apply(key)
+    TupleListOpsGenK.lemmaGetValueByKeyImpliesContainsTuple(lm2.toList, key, v2)
+    assert(lm1.toList.contains((key, v)))
+    assert(lm2.toList.contains((key, v)))
+    assert(lm1.apply(key) == lm2.apply(key))
+    assert(lm1.apply(key) == v)
+
+    val lm1WithoutKey = lm1 - key
+    val lm2WithoutKey = lm2 - key
+    lemmaRemovePreservesEq(lm1, lm2, key)
+    check(lm1WithoutKey.eq(lm2WithoutKey))
+    check(lm1WithoutKey.contains(key) == false)
+    check(lm2WithoutKey.contains(key) == false)
+  
+    val lm1After = lm1WithoutKey + (key, value)
+    val lm2After = lm2WithoutKey + (key, value)
+    lemmaAddToEqMapsPreservesEqIfDoesNotContainKey(lm1WithoutKey, lm2WithoutKey, key, value)
+
+    check(lm1After.eq(lm2After))
+
+    removeThenAddForSameKeyIsSameAsAdd(lm1, key, value)
+    removeThenAddForSameKeyIsSameAsAdd(lm2, key, value)
+
+    check(lm1After.eq(lm1 + (key, value)))
+    check(lm2After.eq(lm2 + (key, value)))
+    
+    check((lm1 + (key, value)).eq(lm2 + (key, value)))
+    
+  }.ensuring(_ => (lm1 + (key, value)).eq(lm2 + (key, value)))
+
+  @opaque
+  @inlineOnce
+  def lemmaEquivalentThenSameContains[K, B](
+      lm1: ListMap[K, B],
+      lm2: ListMap[K, B],
+      key: K
+  ): Unit = {
+    require(lm1.eq(lm2))
+    if(lm1.contains(key)){
+      val v = lm1.apply(key)
+      TupleListOpsGenK.lemmaGetValueByKeyImpliesContainsTuple(lm1.toList, key, v)
+      assert(lm1.toList.contains((key, v)))
+      assert(lm2.toList.contains((key, v)))
+      TupleListOpsGenK.lemmaContainsTupleThenContainsKey(lm2.toList, key, v)
+      
+      assert(lm1.contains(key) == true)
+      assert(lm2.contains(key) == true)
+
+    } else {
+      if(lm2.contains(key)){
+          TupleListOpsGenK.lemmaContainsKeyImpliesGetValueByKeyDefined(lm2.toList, key)
+          TupleListOpsGenK.lemmaGetValueByKeyImpliesContainsTuple(lm2.toList, key, lm2.apply(key))
+          assert(lm2.toList.contains((key, lm2.apply(key))))
+          assert(lm1.toList.contains((key, lm2.apply(key))))
+          TupleListOpsGenK.lemmaContainsTupleThenContainsKey(lm1.toList, key, lm2.apply(key))
+          check(false)
+        }
+        assert(lm1.contains(key) == false)
+        assert(lm2.contains(key) == false)
+    }
+  }.ensuring(_ => lm1.contains(key) == lm2.contains(key))
+
+  @opaque
+  @inlineOnce
+  def lemmaEquivalentGetSameValue[K, B](
+      lm1: ListMap[K, B],
+      lm2: ListMap[K, B],
+      key: K
+  ): Unit = {
+    require(lm1.eq(lm2))
+    lemmaEquivalentThenSameContains(lm1, lm2, key)
+    if(lm1.contains(key)){
+      val v = lm1.apply(key)
+      TupleListOpsGenK.lemmaGetValueByKeyImpliesContainsTuple(lm1.toList, key, v)
+      assert(lm1.toList.contains((key, v)))
+      assert(lm2.toList.contains((key, v)))
+      TupleListOpsGenK.lemmaContainsTupleThenContainsKey(lm2.toList, key, v)
+      assert(lm2.contains(key))
+      val v2 = lm2.apply(key)
+      TupleListOpsGenK.lemmaGetValueByKeyImpliesContainsTuple(lm2.toList, key, v2)
+      if(v2 != v){
+        assert(lm2.toList.contains((key, v2)))
+        assert(lm2.toList.contains((key, v)))
+        TupleListOpsGenK.lemmaContainsTwoDifferentTuplesSameKeyImpossible(lm2.toList, key, v, v2)
+        check(false)
+      }
+      assert(lm1.get(key).get == v)
+      assert(lm2.get(key).get == v)
+    }
+    else{
+      if(lm1.get(key).isDefined){
+        TupleListOpsGenK.lemmaGetValueByKeyImpliesContainsTuple(lm1.toList, key, lm1.get(key).get)
+        TupleListOpsGenK.lemmaContainsTupleThenContainsKey(lm1.toList, key, lm1.get(key).get)
+        check(false)
+      }
+      if(lm2.get(key).isDefined){
+        TupleListOpsGenK.lemmaGetValueByKeyImpliesContainsTuple(lm2.toList, key, lm2.get(key).get)
+        TupleListOpsGenK.lemmaContainsTupleThenContainsKey(lm2.toList, key, lm2.get(key).get)
+        check(false)
+      }
+      assert(lm1.get(key).isEmpty)
+      assert(lm2.get(key).isEmpty)
+    }
+    
+  }.ensuring(_ => lm1.get(key) == lm2.get(key))
+
+  @opaque
+  @inlineOnce
+  def lemmaRemovePreservesEq[K, B](
+      lm1: ListMap[K, B],
+      lm2: ListMap[K, B],
+      key: K
+  ): Unit = {
+    require(lm1.eq(lm2))
+    lemmaEquivalentThenSameContains(lm1, lm2, key)
+    if(lm1.contains(key)) {
+      val v = lm1.apply(key)
+      val v2 = lm2.apply(key)
+      lemmaEquivalentGetSameValue(lm1, lm2, key)
+      check((lm1 - key).toList.content == lm1.toList.content -- Set((key, v)))
+      check((lm2 - key).toList.content == lm2.toList.content -- Set((key, v2)))
+    } else {
+      check((lm1 - key).toList.content == lm1.toList.content)
+      check((lm2 - key).toList.content == lm2.toList.content)
+    }
+
+  }.ensuring(_ => (lm1 - key).eq(lm2 - key))
 }

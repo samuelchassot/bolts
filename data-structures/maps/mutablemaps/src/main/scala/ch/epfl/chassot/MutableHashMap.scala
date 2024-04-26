@@ -131,9 +131,10 @@ object MutableHashMap {
             check(noDuplicateKeys(newBucket))
             lemmaChangeOneBucketByAValidOnePreservesForallNoDuplicatesAndHash(oldLongListMap, hash, newBucket, hashF)
             lemmaChangeOneBucketToUpdateAnExistingKeyUpdateThisKeyInGenMap(oldLongListMap, hash, newBucket, key, v, hashF)
+            ListMapLemmas.lemmaEquivalentThenSameContains(map, oldMap + (key, v), key)
             check(underlying.v.map.toList.forall((k, v) => noDuplicateKeys(v)))
             check(allKeysSameHashInMap(underlying.v.map, hashF)) 
-            check(map == oldMap + (key, v))
+            check(map.eq(oldMap + (key, v)))
           } else {
             check(valid)
             check(map == oldMap)
@@ -160,6 +161,10 @@ object MutableHashMap {
             check(underlying.v.map.toList.forall((k, v) => noDuplicateKeys(v)))
             check(allKeysSameHashInMap(underlying.v.map, hashF)) 
             check(map.eq(oldMap + (key, v)))
+            check(res)
+            ListMapLemmas.lemmaEquivalentThenSameContains(map, oldMap + (key, v), key)
+            check((oldMap + (key, v)).contains(key))
+            check(map.contains(key))
           } else {
             check(valid)
             check(map == oldMap)
@@ -573,6 +578,7 @@ object MutableHashMap {
         
         lemmaAddToMapFromBucketPreservesEquivalence(extractMap(lm.tail.toList) + (key, newValue), extractMap((lm.tail + (hash, newBucket)).toList), hd._2)
 
+        // ----------------------------- This is to understand the proof --------------------------------
         // if(lm.contains(hash)){
         //   assert(lm.head._1 != hash)
         //   assert(lm.tail.contains(hash))
@@ -650,22 +656,24 @@ object MutableHashMap {
         check(extractMap((lm + (hash, newBucket)).toList) == addToMapMapFromBucket(Cons((key, newValue), removePairForKey(lm.apply(hash), key)), extractMap(tl)))
         check(addToMapMapFromBucket(Cons((key, newValue), removePairForKey(lm.apply(hash), key)), extractMap(tl)) ==  addToMapMapFromBucket(removePairForKey(lm.apply(hash), key), extractMap(tl) + (key, newValue)))
         lemmaAddToMapFromBucketPlusKeyValueIsCommutative(extractMap(tl), key, newValue, removePairForKey(lm.apply(hash), key))
-        check(addToMapMapFromBucket(Cons((key, newValue), removePairForKey(lm.apply(hash), key)), extractMap(tl)) ==  addToMapMapFromBucket(removePairForKey(lm.apply(hash), key), extractMap(tl)) + (key, newValue))
+        check(addToMapMapFromBucket(Cons((key, newValue), removePairForKey(lm.apply(hash), key)), extractMap(tl)).eq(addToMapMapFromBucket(removePairForKey(lm.apply(hash), key), extractMap(tl)) + (key, newValue)))
 
         val intermediateLm = lm + (hash, newBucket.tail)
         check(newBucket.tail == removePairForKey(lm.apply(hash), key))
         check( addToMapMapFromBucket(removePairForKey(lm.apply(hash), key), extractMap(tl)) == extractMap(intermediateLm.toList))
         lemmaChangeOneBucketToRemoveAKeyRemoveThisKeyInGenMap(lm, hash, newBucket.tail, key, hashF)
-        check(extractMap(intermediateLm.toList) == extractMap(lm.toList) - key)
+        check(extractMap(intermediateLm.toList).eq(extractMap(lm.toList) - key))
 
+        ListMapLemmas.lemmaEquivalentThenSameContains(extractMap(intermediateLm.toList), extractMap(lm.toList) - key, key)
         check(intermediateLm.apply(hash) == newBucket.tail)
+        assert(!extractMap(intermediateLm.toList).contains(key))
         lemmaChangeOneBucketToUpdateANewKeyUpdateThisKeyInGenMap(intermediateLm, hash, newBucket, key, newValue, hashF)
-        check(extractMap((intermediateLm + (hash, newBucket)).toList) == extractMap(intermediateLm.toList) + (key, newValue))
-        check(extractMap(intermediateLm.toList) == extractMap(lm.toList) - key)
+        check(extractMap((intermediateLm + (hash, newBucket)).toList).eq(extractMap(intermediateLm.toList) + (key, newValue)))
+        check(extractMap(intermediateLm.toList).eq(extractMap(lm.toList) - key))
 
         ListMapLemmas.removeThenAddForSameKeyIsSameAsAdd(extractMap(lm.toList), key, newValue)
 
-        check(extractMap((lm + (hash, newBucket)).toList) == extractMap(lm.toList) + (key, newValue))
+        check(extractMap((lm + (hash, newBucket)).toList).eq(extractMap(lm.toList) + (key, newValue)))
       case Cons(hd, tl) if hd._1 != hash => 
         lemmaNotSameHashThenCannotContainKey(lm, key, hd._1, hashF)
 
@@ -675,18 +683,27 @@ object MutableHashMap {
 
         check(extractMap(lm.tail.toList).contains(key))
         lemmaChangeOneBucketToUpdateAnExistingKeyUpdateThisKeyInGenMap(lm.tail, hash, newBucket, key, newValue, hashF)
-        check(extractMap((lm.tail + (hash, newBucket)).toList) == extractMap(lm.tail.toList) + (key, newValue))
+        check(extractMap((lm.tail + (hash, newBucket)).toList).eq(extractMap(lm.tail.toList) + (key, newValue)))
         check(lm.head != (hash, newBucket))
         check(extractMap(lm.toList) == addToMapMapFromBucket(hd._2, extractMap(lm.tail.toList)))
 
         lemmaAddToMapFromBucketPlusKeyValueIsCommutative(extractMap(lm.tail.toList), key, newValue, hd._2)
 
-        check(extractMap((lm + (hash, newBucket)).toList) == extractMap(lm.toList) + (key, newValue))
+        assert(addToMapMapFromBucket(hd._2, (extractMap(lm.tail.toList) + (key, newValue))).eq(addToMapMapFromBucket(hd._2, extractMap(lm.tail.toList)) + (key, newValue)))
+
+        assert(addToMapMapFromBucket(hd._2, extractMap(lm.tail.toList)).eq(extractMap(lm.toList)))
+        
+        ListMapLemmas.lemmaAddToEqMapsPreservesEq(extractMap(lm.toList), addToMapMapFromBucket(hd._2, extractMap(lm.tail.toList)), key, newValue)
+
+        lemmaAddToMapFromBucketPreservesEquivalence(extractMap(lm.tail.toList) + (key, newValue), extractMap((lm.tail + (hash, newBucket)).toList), hd._2)
+        
+
+        check(extractMap((lm + (hash, newBucket)).toList).eq(extractMap(lm.toList) + (key, newValue)))
       case Nil() => ()
     }
 
   } ensuring (_ => {
-    extractMap((lm + (hash, newBucket)).toList) == extractMap(lm.toList) + (key, newValue)
+    extractMap((lm + (hash, newBucket)).toList).eq(extractMap(lm.toList) + (key, newValue))
   })
 
   // -----------------------------------------------------

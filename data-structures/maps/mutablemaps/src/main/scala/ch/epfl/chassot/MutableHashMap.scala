@@ -132,7 +132,7 @@ object MutableHashMap {
             lemmaChangeOneBucketByAValidOnePreservesForallNoDuplicatesAndHash(oldLongListMap, hash, newBucket, hashF)
             lemmaChangeOneBucketToUpdateAnExistingKeyUpdateThisKeyInGenMap(oldLongListMap, hash, newBucket, key, v, hashF)
             check(underlying.v.map.toList.forall((k, v) => noDuplicateKeys(v)))
-            check(allKeysSameHashInMap(underlying.v.map, hashF)) // TODO
+            check(allKeysSameHashInMap(underlying.v.map, hashF)) 
             check(map == oldMap + (key, v))
           } else {
             check(valid)
@@ -159,7 +159,7 @@ object MutableHashMap {
             lemmaChangeOneBucketToUpdateANewKeyUpdateThisKeyInGenMap(oldLongListMap, hash, newBucket, key, v, hashF)
             check(underlying.v.map.toList.forall((k, v) => noDuplicateKeys(v)))
             check(allKeysSameHashInMap(underlying.v.map, hashF)) 
-            check(map == oldMap + (key, v))
+            check(map.eq(oldMap + (key, v)))
           } else {
             check(valid)
             check(map == oldMap)
@@ -565,16 +565,45 @@ object MutableHashMap {
         assert(!containsKey(hd._2, key))
         lemmaAddToMapFromBucketPlusKeyValueIsCommutative(extractMap(lm.tail.toList), key, newValue, hd._2)
         assert(addToMapMapFromBucket(hd._2, (extractMap(lm.tail.toList) + (key, newValue))).eq(addToMapMapFromBucket(hd._2, extractMap(lm.tail.toList)) + (key, newValue)))
+        assert(addToMapMapFromBucket(hd._2, (extractMap(lm.tail.toList) + (key, newValue))).eq(addToMapMapFromBucket(hd._2, extractMap(lm.tail.toList)) + (key, newValue)))
         
         assert(extractMap(lm.toList).eq(addToMapMapFromBucket(hd._2, extractMap(lm.tail.toList))))
         ListMapLemmas.lemmaAddToEqMapsPreservesEq(extractMap(lm.toList), addToMapMapFromBucket(hd._2, extractMap(lm.tail.toList)), key, newValue)
         assert((extractMap(lm.toList) + (key, newValue)).eq(addToMapMapFromBucket(hd._2, extractMap(lm.tail.toList)) + (key, newValue)))
         
-        ListLongMapLemmas.lemmaAddToMapMaintainsContains
-        assert((lm + (hash, newBucket)).toList.head != (hash, newBucket))
+        lemmaAddToMapFromBucketPreservesEquivalence(extractMap(lm.tail.toList) + (key, newValue), extractMap((lm.tail + (hash, newBucket)).toList), hd._2)
 
-        assert(extractMap((lm + (hash, newBucket)).toList).eq(addToMapMapFromBucket(hd._2, extractMap(lm.tail.toList)) + (key, newValue)))
-        assert(extractMap((lm + (hash, newBucket)).toList).eq(extractMap(lm.toList) + (key, newValue)))
+        // if(lm.contains(hash)){
+        //   assert(lm.head._1 != hash)
+        //   assert(lm.tail.contains(hash))
+
+        //   assert(lm.tail + (hash, newBucket) == (lm + (hash, newBucket)).tail) 
+        //   assert(extractMap((lm.tail + (hash, newBucket)).toList) == extractMap((lm + (hash, newBucket)).toList.tail))
+        //   assert(extractMap((lm.tail + hd).toList).eq(extractMap(lm.toList)))
+  
+        //   assert(extractMap((lm + (hash, newBucket)).toList).eq(addToMapMapFromBucket(hd._2, extractMap((lm + (hash, newBucket)).tail.toList))))
+        //   assert(extractMap((lm + (hash, newBucket)).toList).eq(addToMapMapFromBucket(hd._2, extractMap((lm.tail + (hash, newBucket)).toList))))
+  
+        //   assert( extractMap((lm.tail + (hash, newBucket)).toList).eq(extractMap(lm.tail.toList) + (key, newValue))) 
+  
+        //   lemmaAddToMapFromBucketPreservesEquivalence(extractMap(lm.tail.toList) + (key, newValue), extractMap((lm.tail + (hash, newBucket)).toList), hd._2)
+        //   assert(extractMap((lm + (hash, newBucket)).toList).eq(addToMapMapFromBucket(hd._2, extractMap(lm.tail.toList) + (key, newValue))))
+  
+        //   assert(extractMap((lm + (hash, newBucket)).toList).eq(addToMapMapFromBucket(hd._2, extractMap(lm.tail.toList)) + (key, newValue)))
+        //   assert(extractMap((lm + (hash, newBucket)).toList).eq(extractMap(lm.toList) + (key, newValue)))
+        // } else {
+        //   assert(lm + (hash, newBucket) == lm + hd + (hash, newBucket))
+        //   if(hash < hd._1){
+        //     assert(lm + (hash, newBucket) == ListLongMap(Cons((hash, newBucket), lm.toList)))
+        //     assert(extractMap((lm + (hash, newBucket)).toList).eq(extractMap(lm.toList) + (key, newValue)))
+        //   } else {
+        //     assert(lm + (hash, newBucket) == ListLongMap(Cons(hd, (lm.tail + (hash, newBucket)).toList)))
+        //     lemmaAddToMapFromBucketPreservesEquivalence(extractMap(lm.tail.toList) + (key, newValue), extractMap((lm.tail + (hash, newBucket)).toList), hd._2)
+        //     assert(extractMap((lm + (hash, newBucket)).toList).eq(extractMap(lm.toList) + (key, newValue)))
+        //   }
+
+
+        // }
 
       case Nil() => () 
     }

@@ -4,7 +4,6 @@ package ch.epfl.chassot
 
 import stainless.annotation._
 import stainless.collection._
-import stainless.equations._
 import stainless.lang.{ghost => ghostExpr, *}
 import stainless.proof.check
 import scala.annotation.tailrec

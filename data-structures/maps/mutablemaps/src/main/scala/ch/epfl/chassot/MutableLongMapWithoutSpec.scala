@@ -25,7 +25,8 @@ object MutableLongMapOpti {
     * @param defaultEntry
     * @return
     */
-  def getEmptyLongMap[V](defaultEntry: Long => V): LongMapOpti[V] = {
+  @cCode.`inline`
+  def getEmptyLongMap[V](defaultEntry: V): LongMapOpti[V] = {
     val m = 15
     LongMapOpti(Cell(LongMapFixedSizeOpti.getNewLongMapFixedSize(m, defaultEntry)))
   }
@@ -35,7 +36,8 @@ object MutableLongMapOpti {
     * @param defaultEntry
     * @return
     */
-  def getEmptyLongMap[V](defaultEntry: Long => V, initialSize: Int): LongMapOpti[V] = {
+  @cCode.`inline`
+  def getEmptyLongMap[V](defaultEntry: V, initialSize: Int): LongMapOpti[V] = {
     val m = initialSize - 1
     LongMapOpti(Cell(LongMapFixedSizeOpti.getNewLongMapFixedSize(m, defaultEntry)))
   }
@@ -86,15 +88,18 @@ object MutableLongMapOpti {
     @pure
     def computeNewMask(oldMask: Int, s: Int): Int = {
 
-      val newMask = if (s > (MAX_MASK >> 3)) {
-        ((oldMask << 1) + 1) & MAX_MASK
+      // val newMask = if (s > (MAX_MASK >> 3)) {
+      val newMask = if (s > (MAX_MASK / 8)) {
+        // ((oldMask << 1) + 1) & MAX_MASK
+        ((oldMask * 2) + 1) & MAX_MASK
       } else {
 
         var m = oldMask
-        if (2 * s >= oldMask) m = ((m << 1) + 1) & MAX_MASK
+        // if (2 * s >= oldMask) m = ((m << 1) + 1) & MAX_MASK
+        if (2 * s >= oldMask) m = ((m * 2) + 1) & MAX_MASK
         while (m > 8 && 8 * s < m) {
           decreases(m)
-          m = m >>> 1
+          m = m / 2
         }
 
         m
@@ -104,7 +109,8 @@ object MutableLongMapOpti {
 
     @pure
     def completeComputeNewMask(oldMask: Int, _vacant: Int, _size: Int): Int = {
-      if (_size > (MAX_MASK >> 3)) {
+      // if (_size > (MAX_MASK >> 3)) {
+      if (_size > (MAX_MASK / 8)) {
         ((oldMask << 1) + 1) & MAX_MASK
       } else {
         var m = oldMask
@@ -113,7 +119,8 @@ object MutableLongMapOpti {
         }
         while (m > 8 && 8 * _size < m) {
           decreases(m)
-          m = m >>> 1
+          // m = m >>> 1
+          m = m / 2
         }
         m
       }
@@ -154,9 +161,9 @@ object MutableLongMapOpti {
 
     @tailrec
     def repackFrom(newMap: LongMapFixedSizeOpti[V], from: Int): Boolean = {
-      val currentKey = underlying.v._keys(from)
+      val currentKey: Long = underlying.v._keys(from)
 
-      val currentValue = underlying.v._values(from).asInstanceOf[V]
+      val currentValue = underlying.v._values(from).get(underlying.v.defaultEntry)
 
       if (currentKey != 0 && currentKey != Long.MinValue) {
 
@@ -227,14 +234,14 @@ object MutableLongMapOpti {
     */
   @mutable
   final case class LongMapFixedSizeOpti[V](
-      val defaultEntry: Long => V,
+      val defaultEntry: V,
       val mask: Int,
       var extraKeys: Int,
       var zeroValue: V,
       var minValue: V,
       var _size: Int,
       val _keys: Array[Long],
-      val _values: Array[AnyRef],
+      val _values: Array[ValueCell[V]],
       var _vacant: Int
   ) {
     import LongMapFixedSizeOpti.seekEntryOrOpen
@@ -283,14 +290,14 @@ object MutableLongMapOpti {
       if (key == -key) {
         if (key == 0 && (extraKeys & 1) != 0) zeroValue
         else if (key == Long.MinValue && (extraKeys & 2) != 0) minValue
-        else defaultEntry(key)
+        else defaultEntry
       } else {
         val seekEntryRes = seekEntry(key)(_keys, mask)
         seekEntryRes match {
           case Found(index) => {
-            _values(index).asInstanceOf[V]
+            _values(index).get(defaultEntry)
           }
-          case _ => defaultEntry(key)
+          case _ => defaultEntry
         }
       }
     }
@@ -322,7 +329,7 @@ object MutableLongMapOpti {
           case MissingVacant(index) => updateHelperNewKey(key, v, index)
           case MissingZero(index)   => updateHelperNewKey(key, v, index)
           case Found(index) => {
-            _values(index) = v.asInstanceOf[AnyRef]
+            _values(index) = ValueCellFull(v)
             true
           }
         }
@@ -338,12 +345,12 @@ object MutableLongMapOpti {
       if (key == -key) {
         if (key == 0L) {
           extraKeys &= 0x2
-          zeroValue = defaultEntry(0L)
+          zeroValue = defaultEntry
 
           true
         } else {
           extraKeys &= 0x1
-          minValue = defaultEntry(Long.MinValue)
+          minValue = defaultEntry
 
           true
         }
@@ -353,7 +360,7 @@ object MutableLongMapOpti {
           case Found(index) => {
             _size -= 1
             _keys(index) = Long.MinValue
-            _values(index) = null
+            _values(index) = ValueCellFull(defaultEntry)
             val tempVac = _vacant + 1
             if (tempVac > 0) {
               _vacant = tempVac
@@ -373,7 +380,7 @@ object MutableLongMapOpti {
     private def updateHelperNewKey(key: Long, v: V, index: Int): Boolean = {
       _keys(index) = key
       _size += 1
-      _values(index) = v.asInstanceOf[AnyRef]
+      _values(index) = ValueCellFull(v)
       true
 
     }
@@ -389,16 +396,17 @@ object MutableLongMapOpti {
 
   object LongMapFixedSizeOpti {
 
-    def getNewLongMapFixedSize[V](mask: Int, defaultEntry: Long => V): LongMapFixedSizeOpti[V] = {
+    @cCode.`inline`
+    def getNewLongMapFixedSize[V](mask: Int, defaultEntry: V): LongMapFixedSizeOpti[V] = {
       val res = LongMapFixedSizeOpti[V](
         defaultEntry = defaultEntry,
         mask = mask,
         extraKeys = 0,
-        zeroValue = defaultEntry(0L),
-        minValue = defaultEntry(0L),
+        zeroValue = defaultEntry,
+        minValue = defaultEntry,
         _size = 0,
-        _keys = new Array[Long](mask + 1),
-        _values = new Array[AnyRef](mask + 1),
+        _keys = Array.fill(mask + 1)(0L),
+        _values = Array.fill(mask + 1)(EmptyCell[V]().asInstanceOf[ValueCell[V]]),
         _vacant = 0
       )
       res
@@ -446,9 +454,12 @@ object MutableLongMapOpti {
     @pure
     private def toIndex(k: Long, mask: Int): Int = {
       // Part of the MurmurHash3 32 bit finalizer
-      val h = ((k ^ (k >>> 32)) & 0xffffffffL).toInt
-      val x = (h ^ (h >>> 16)) * 0x85ebca6b
-      (x ^ (x >>> 13)) & mask
+      // val h = ((k ^ (k >>> 32)) & 0xffffffffL).toInt
+      val h = ((k ^ (k / 4294967296L)) & 0xffffffffL).toInt
+      // val x = (h ^ (h >>> 16)) * 0x85ebca6b
+      val x = (h ^ (h / 65536)) * 0x85ebca6b
+      // (x ^ (x >>> 13)) & mask
+      (x ^ (x / 8192)) & mask
     }
 
     /** Checks if i is a valid index in the Array of values
@@ -506,7 +517,6 @@ object MutableLongMapOpti {
       */
     @pure
     def seekEntryOrOpen(k: Long)(implicit _keys: Array[Long], mask: Int): SeekEntryResult = {
-
       val intermediate =
         seekKeyOrZeroOrLongMinValue(0, toIndex(k, mask))(k, _keys, mask)
       intermediate match {
@@ -540,6 +550,7 @@ object MutableLongMapOpti {
         _keys: Array[Long],
         mask: Int
     ): SeekEntryResult = {
+      decreases(MAX_ITER - x)
       val q = _keys(ee)
       if (x >= MAX_ITER) Intermediate(true, ee, x)
       else if (q == k || q + q == 0) Intermediate(false, ee, x)
@@ -554,6 +565,7 @@ object MutableLongMapOpti {
         _keys: Array[Long],
         mask: Int
     ): SeekEntryResult = {
+      decreases(MAX_ITER - x)
       val q = _keys(ee)
       if (x >= MAX_ITER) Undefined()
       else if (q == k) Found(ee)

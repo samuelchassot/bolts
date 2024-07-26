@@ -49,15 +49,15 @@ object CharOrdering extends Ordering[Char] {
   override def compare(x: Char, y: Char): Int = x - y
 }
 
-case class RegexHashable[C](hc: Hashable[C]) extends Hashable[Regex[C]] {
-  override def hash(x: Regex[C]): Long = x match {
-    case ElementMatch(c) => 2L * hc.hash(c)
-    case Concat(l, r)    => 3L * hash(l) + 5L * hash(r)
-    case Union(l, r)     => 7L * hash(l) + 11L * hash(r)
-    case Star(r)         => 13L * hash(r)
-    case _               => 17L
-  }
-}
+// case class RegexHashable[C](hc: Hashable[C]) extends Hashable[Regex[C]] {
+//   override def hash(x: Regex[C]): Long = x match {
+//     case ElementMatch(c) => 2L * hc.hash(c)
+//     case Concat(l, r)    => 3L * hash(l) + 5L * hash(r)
+//     case Union(l, r)     => 7L * hash(l) + 11L * hash(r)
+//     case Star(r)         => 13L * hash(r)
+//     case _               => 17L
+//   }
+// }
 
 case class RegexOrdering[C](oc: Ordering[C]) extends Ordering[Regex[C]] {
   override def compare(x: Regex[C], y: Regex[C]): Int = (x, y) match {

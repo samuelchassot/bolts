@@ -192,18 +192,18 @@ object VerifiedRegex {
     }
   }
 
-  // case class RegexHashable[C](cHashable: Hashable[C]) extends Hashable[Regex[C]] {
-  //   def hash(r: Regex[C]): Long = {
-  //     r match {
-  //       case ElementMatch(c) => 2L * cHashable.hash(c)
-  //       case Star(rInner)    => 3L * hash(rInner)
-  //       case Union(r1, r2)   => 5L * hash(r1) + 5L * hash(r2)
-  //       case Concat(r1, r2)  => 7L * hash(r1) + 7L * hash(r2)
-  //       case EmptyExpr()     => 11L
-  //       case EmptyLang()     => 13L
-  //     }
-  //   }
-  // }
+  case class RegexHashable[C](cHashable: Hashable[C]) extends Hashable[Regex[C]] {
+    def hash(r: Regex[C]): Long = {
+      r match {
+        case ElementMatch(c) => 2L * cHashable.hash(c)
+        case Star(rInner)    => 3L * hash(rInner)
+        case Union(r1, r2)   => 5L * hash(r1) + 5L * hash(r2)
+        case Concat(r1, r2)  => 7L * hash(r1) + 7L * hash(r2)
+        case EmptyExpr()     => 11L
+        case EmptyLang()     => 13L
+      }
+    }
+  }
 
   @ghost
   def isEmptyExpr[C](r: Regex[C]): Boolean = {

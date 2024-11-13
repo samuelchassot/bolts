@@ -109,22 +109,30 @@ object VerifiedRegex {
     */
   case class EmptyLang[C]() extends Regex[C]
 
-  case class GenUnion[C](s: Set[Regex[C]]) extends Regex[C] 
+  /**
+    * s is conceptually a set, but due to ADT limitations, it is represented as a list
+    *
+    * @param s
+    */
+  case class GenUnion[C](s: List[Regex[C]]) extends Regex[C] 
   case class GenConcat[C](l: List[Regex[C]]) extends Regex[C]
 
-  // @ghost
-  def validRegex[C](r: Regex[C]): Boolean = r match {
-    case ElementMatch(c)    => true
-    case Star(r)            => !nullable(r) && validRegex(r) // && !isEmptyLang(r)
-    case Union(rOne, rTwo)  => validRegex(rOne) && validRegex(rTwo)
-    case Concat(rOne, rTwo) => validRegex(rOne) && validRegex(rTwo)
-    case EmptyExpr()        => true
-    case EmptyLang()        => true
-    case GenUnion(ss)       => ss.forall(validRegex)
-    case GenConcat(l)       => l.forall(validRegex)
+  @ghost
+  def validRegex[C](r: Regex[C]): Boolean = {
+    decreases(regexDepth(r))
+    r match {
+      case ElementMatch(c)    => true
+      case Star(r)            => !nullable(r) && validRegex(r) // && !isEmptyLang(r)
+      case Union(rOne, rTwo)  => validRegex(rOne) && validRegex(rTwo)
+      case Concat(rOne, rTwo) => validRegex(rOne) && validRegex(rTwo)
+      case EmptyExpr()        => true
+      case EmptyLang()        => true
+      case GenUnion(ss)       => ss.forall(validRegex)
+      case GenConcat(l)       => l.forall(validRegex)
+    }
   }
 
-  // @ghost
+  @ghost
   def regexDepth[C](r: Regex[C]): BigInt = {
     decreases(r)
     r match {
@@ -134,20 +142,32 @@ object VerifiedRegex {
       case Concat(rOne, rTwo) => BigInt(1) + Utils.maxBigInt(regexDepth(rOne), regexDepth(rTwo))
       case EmptyExpr()        => BigInt(1)
       case EmptyLang()        => BigInt(1)
-      case GenUnion(ss)       => BigInt(1) + Utils.maxBigInt(ss.map(regexDepth))
-      case GenConcat(l)       => BigInt(1) + Utils.maxBigInt(l.map(regexDepth))
-
+      case GenUnion(ss)       => BigInt(1) + (ss match {
+        case Nil() => BigInt(0)
+        case Cons(hd, tl) => Utils.maxBigInt(regexDepth(hd), regexDepth(GenUnion(tl)))
+      })
+      case GenConcat(l)       => BigInt(1) + regexDepthL(l)
     }
-  }.ensuring (res =>
-    res > 0 && (r match {
-      case Union(rOne, rTwo)  => res > regexDepth(rOne) && res > regexDepth(rTwo)
-      case Concat(rOne, rTwo) => res > regexDepth(rOne) && res > regexDepth(rTwo)
-      case Star(r)            => res > regexDepth(r)
-      case GenUnion(ss)       => res > Utils.maxBigInt(ss.map(regexDepth))
-      case GenConcat(l)       => res > Utils.maxBigInt(l.map(regexDepth))
-      case _                  => res == BigInt(1)
-    })
-  )
+  }
+  // .ensuring (res =>
+  //   res > 0 && (r match {
+  //     case Union(rOne, rTwo)  => res > regexDepth(rOne) && res > regexDepth(rTwo)
+  //     case Concat(rOne, rTwo) => res > regexDepth(rOne) && res > regexDepth(rTwo)
+  //     case Star(r)            => res > regexDepth(r)
+  //     case GenUnion(ss)       => res > regexDepthL(ss)
+  //     case GenConcat(l)       => res > regexDepthL(l)
+  //     case _                  => res == BigInt(1)
+  //   })
+  // )
+
+  @ghost
+  def regexDepthL[C](l: List[Regex[C]]): BigInt = {
+    decreases(l)
+    l match {
+      case Nil() => BigInt(0)
+      case Cons(hd, tl) => Utils.maxBigInt(regexDepth(hd), regexDepthL(tl))
+    }
+  }.ensuring(res => res == 0 || !l.isEmpty && res > 0)
 
   def usedCharacters[C](r: Regex[C]): List[C] = {
     r match {
@@ -1805,10 +1825,10 @@ object VerifiedRegexMatcher {
 }
 
 object Utils {
-  def maxBigInt(a: BigInt, b: BigInt): BigInt = if (a >= b) a else b
-  def maxBigInt(l: List[BigInt]): BigInt = l match {
-    case Cons(hd, tl) => maxBigInt(hd, maxBigInt(tl))
-    case Nil()        => BigInt(0)
-  }
+  inline def maxBigInt(a: BigInt, b: BigInt): BigInt = if (a >= b) a else b
+  // inline def maxBigInt(l: List[BigInt]): BigInt = l match {
+  //   case Cons(hd, tl) => maxBigInt(hd, maxBigInt(tl))
+  //   case Nil()        => BigInt(0)
+  // }
   def maxLong(a: Long, b: Long): Long = if (a >= b) a else b
 }

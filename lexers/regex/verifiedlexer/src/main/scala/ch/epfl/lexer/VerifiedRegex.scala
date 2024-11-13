@@ -97,7 +97,20 @@ object Memoisation {
 }
 
 object VerifiedRegex {
-  abstract sealed class Regex[C] {}
+  sealed trait Regex[C]
+  case class ElementMatch[C](c: C) extends Regex[C]
+  case class Star[C](reg: Regex[C]) extends Regex[C]
+  case class Union[C](regOne: Regex[C], regTwo: Regex[C]) extends Regex[C]
+  case class Concat[C](regOne: Regex[C], regTwo: Regex[C]) extends Regex[C]
+  /** Regex that accepts only the empty string: represents the language {""}
+    */
+  case class EmptyExpr[C]() extends Regex[C]
+  /** Regex that accepts nothing: represents the empty language
+    */
+  case class EmptyLang[C]() extends Regex[C]
+
+  case class GenUnion[C](s: Set[Regex[C]]) extends Regex[C] 
+  case class GenConcat[C](l: List[Regex[C]]) extends Regex[C]
 
   // @ghost
   def validRegex[C](r: Regex[C]): Boolean = r match {
@@ -107,6 +120,8 @@ object VerifiedRegex {
     case Concat(rOne, rTwo) => validRegex(rOne) && validRegex(rTwo)
     case EmptyExpr()        => true
     case EmptyLang()        => true
+    case GenUnion(ss)       => ss.forall(validRegex)
+    case GenConcat(l)       => l.forall(validRegex)
   }
 
   // @ghost
@@ -119,28 +134,20 @@ object VerifiedRegex {
       case Concat(rOne, rTwo) => BigInt(1) + Utils.maxBigInt(regexDepth(rOne), regexDepth(rTwo))
       case EmptyExpr()        => BigInt(1)
       case EmptyLang()        => BigInt(1)
+      case GenUnion(ss)       => BigInt(1) + Utils.maxBigInt(ss.map(regexDepth))
+      case GenConcat(l)       => BigInt(1) + Utils.maxBigInt(l.map(regexDepth))
+
     }
   }.ensuring (res =>
     res > 0 && (r match {
       case Union(rOne, rTwo)  => res > regexDepth(rOne) && res > regexDepth(rTwo)
       case Concat(rOne, rTwo) => res > regexDepth(rOne) && res > regexDepth(rTwo)
       case Star(r)            => res > regexDepth(r)
+      case GenUnion(ss)       => res > Utils.maxBigInt(ss.map(regexDepth))
+      case GenConcat(l)       => res > Utils.maxBigInt(l.map(regexDepth))
       case _                  => res == BigInt(1)
     })
   )
-
-  case class ElementMatch[C](c: C) extends Regex[C]
-  case class Star[C](reg: Regex[C]) extends Regex[C]
-  case class Union[C](regOne: Regex[C], regTwo: Regex[C]) extends Regex[C]
-  case class Concat[C](regOne: Regex[C], regTwo: Regex[C]) extends Regex[C]
-
-  /** Regex that accepts only the empty string: represents the language {""}
-    */
-  case class EmptyExpr[C]() extends Regex[C]
-
-  /** Regex that accepts nothing: represents the empty language
-    */
-  case class EmptyLang[C]() extends Regex[C]
 
   def usedCharacters[C](r: Regex[C]): List[C] = {
     r match {
@@ -381,6 +388,11 @@ object VerifiedRegexMatcher {
       case Union(r1, r2)   => matchRSpec(r1, s) || matchRSpec(r2, s)
       case Star(rInner)    => s.isEmpty || findConcatSeparation(rInner, Star(rInner), Nil(), s, s).isDefined
       case Concat(r1, r2)  => findConcatSeparation(r1, r2, Nil(), s, s).isDefined
+      case GenUnion(ss)     => ss.exists(rr => matchRSpec(rr, s))
+      case GenConcat(l)    => l match {
+        case Nil() => s.isEmpty
+        case Cons(rHd, rTl) => findConcatSeparation(rHd, GenConcat(rTl), Nil(), s, s).isDefined
+      }
     }
   }
 
@@ -1794,5 +1806,9 @@ object VerifiedRegexMatcher {
 
 object Utils {
   def maxBigInt(a: BigInt, b: BigInt): BigInt = if (a >= b) a else b
+  def maxBigInt(l: List[BigInt]): BigInt = l match {
+    case Cons(hd, tl) => maxBigInt(hd, maxBigInt(tl))
+    case Nil()        => BigInt(0)
+  }
   def maxLong(a: Long, b: Long): Long = if (a >= b) a else b
 }

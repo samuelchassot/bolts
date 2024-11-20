@@ -30,6 +30,7 @@ object Main {
   }
 }
 
+
 def testZippers1(): Unit = {
   val r = simplify(("a".r ~ "b".r))
   println(s"R = ${r.asString()}")

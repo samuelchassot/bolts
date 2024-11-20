@@ -4,13 +4,6 @@ object Utils {
   def maxLong(a: Long, b: Long): Long = if (a >= b) a else b
 }
 
-trait IDGiver[C] {
-  def id(c: C): Long
-  val MAX_ID = Int.MaxValue
-  // @law def smallEnough(c: C): Boolean = id(c) >= 0 && id(c) <= MAX_ID
-  // @law def uniqueness(c1: C, c2: C): Boolean = if (id(c1) == id(c2)) then c1 == c2 else true
-}
-
 abstract sealed class Regex[C] {}
 case class ElementMatch[C](c: C) extends Regex[C]
 case class Star[C](reg: Regex[C]) extends Regex[C]
@@ -116,63 +109,3 @@ def regexDepth[C](r: Regex[C]): BigInt = {
     case _                  => res == BigInt(1)
   })
 )
-
-def regexDepthLong[C](r: Regex[C]): Long = {
-  require(regexDepth(r) < INT_MAX_VALUE)
-  // decreases(r)
-  r match {
-    case ElementMatch(c)    => 1L
-    case Star(r)            => 1L + regexDepthLong(r)
-    case Union(rOne, rTwo)  => 1L + Utils.maxLong(regexDepthLong(rOne), regexDepthLong(rTwo))
-    case Concat(rOne, rTwo) => 1L + Utils.maxLong(regexDepthLong(rOne), regexDepthLong(rTwo))
-    case EmptyExpr()        => 1L
-    case EmptyLang()        => 1L
-  }
-} ensuring (res =>
-  res > 0 && (r match {
-    case Union(rOne, rTwo)  => res > regexDepthLong(rOne) && res > regexDepthLong(rTwo)
-    case Concat(rOne, rTwo) => res > regexDepthLong(rOne) && res > regexDepthLong(rTwo)
-    case Star(r)            => res > regexDepthLong(r)
-    case _                  => res == 1L
-  })
-)
-
-def getUniqueId[C](r: Regex[C])(implicit idC: IDGiver[C]): Long = {
-  require(regexDepth(r) <= 30)
-  // decreases(r)
-  r match {
-    case ElementMatch(c) =>
-      // assert(idC.smallEnough(c))
-      2L * idC.id(c)
-    case Star(r)            => 3L + getUniqueId(r)
-    case Union(rOne, rTwo)  => 5L + (getUniqueId(rOne) + getUniqueId(rTwo))
-    case Concat(rOne, rTwo) => 7L + (getUniqueId(rOne) + getUniqueId(rTwo))
-    case EmptyExpr()        => 11L
-    case EmptyLang()        => 13L
-  }
-} ensuring (res => res >= 0)
-
-object CharIDGiver extends IDGiver[Char] {
-  def id(c: Char): Long = c.toLong
-}
-
-def constructRegex(l: List[Char]): Regex[Char] = {
-  l match {
-    case Nil          => EmptyExpr()
-    case head :: Nil  => ElementMatch(head)
-    case head :: tail => Concat(ElementMatch(head), constructRegex(tail))
-  }
-}
-
-getUniqueId(Star(ElementMatch('a')))(CharIDGiver)
-// Regexc representing the regex (abcd + gejho)*
-val r: Regex[Char] = Concat(Star(Union(Concat(Concat(Concat(ElementMatch('a'), ElementMatch('b')), ElementMatch('c')), ElementMatch('d')), Concat(Concat(ElementMatch('g'), ElementMatch('e')), Concat(ElementMatch('j'), ElementMatch('h'))))), ElementMatch('o'))
-getUniqueId(r)(CharIDGiver)
-regexDepth(r)
-
-val r21 = constructRegex(List('a', 'b', 'c', 'd', 'g', 'e', 'j', 'h', 'o'))
-val r22 = constructRegex(List('y', 'v', 'n', 'b', 's', 'l', 'u', 't', 'i', 'o', 'n'))
-val r23 = constructRegex(List('a', 'b', 'c', 'd', 'g', 'e', 'j', 'h', 'o', 'y', 'v', 'n', 'b', 's', 'l', 'u', 't', 'i', 'o', 'n'))
-val r2 = Star(Concat(r23, Star(Union(Union(r21, r22), r23))))
-getUniqueId(r2)(CharIDGiver)
-regexDepth(r2)

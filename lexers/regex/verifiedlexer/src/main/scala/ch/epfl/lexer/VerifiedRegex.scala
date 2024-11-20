@@ -122,11 +122,11 @@ object VerifiedRegex {
   def generalisedConcat[C](l: List[Regex[C]]): Regex[C] = {
     require(l.forall(validRegex))
     l match {
-      case Cons(hd, tl) if tl.isEmpty => hd
+      // case Cons(hd, tl) if tl.isEmpty => hd
       case Cons(hd, tl) => Concat(hd, generalisedConcat(tl))
       case Nil()        => EmptyExpr()
     }
-  }.ensuring(res => validRegex(res) && (if(l.isEmpty) isEmptyExpr(res) else if(l.tail.isEmpty) res == l.head else isConcat(res)))
+  }.ensuring(res => validRegex(res) && (if(l.isEmpty) isEmptyExpr(res) else isConcat(res)))
 
   @ghost
   def validRegex[C](r: Regex[C]): Boolean = r match {
@@ -376,6 +376,23 @@ object ZipperRegex {
     }
   }.ensuring(res => res >= 0)
 
+
+  // def derivativeStep[C](r: Regex[C], a: C): Regex[C] = {
+  //   require(validRegex(r))
+  //   decreases(r)
+  //   val res: Regex[C] = r match {
+  //     case EmptyExpr()       => EmptyLang()
+  //     case EmptyLang()       => EmptyLang()
+  //     case ElementMatch(c)   => if (a == c) EmptyExpr() else EmptyLang()
+  //     case Union(rOne, rTwo) => Union(derivativeStep(rOne, a), derivativeStep(rTwo, a))
+  //     case Star(rInner)      => Concat(derivativeStep(rInner, a), Star(rInner))
+  //     case Concat(rOne, rTwo) => {
+  //       if (nullable(rOne)) Union(Concat(derivativeStep(rOne, a), rTwo), derivativeStep(rTwo, a))
+  //       else Union(Concat(derivativeStep(rOne, a), rTwo), EmptyLang())
+  //     }
+  //   }
+  //   res
+  // }.ensuring (res => validRegex(res))
 
   def derivationStepZipperUp[C](context: Context[C], a: C): Zipper[C] = {
     decreases(context.exprs.size)
@@ -1147,6 +1164,45 @@ object ZipperRegex {
 
 
   // LEMMAS -----------------------------------------------------------------------------------------------------
+
+  @ghost
+  @opaque
+  @inlineOnce
+  def lemmaDerivativePreservesZipperRegexEquivalenceDown[C](reg: Regex[C], ct: Context[C], r: Regex[C], a: C): Unit = {
+    require(validRegex(reg))
+    require(unfocusZipper(List(ct.prepend(reg))) == r)
+
+    assert(isConcat(r))
+    r match {
+      case Concat(rhd, rtl) => {
+        assert(reg == rhd)
+        reg match {
+          case ElementMatch(c) if c == a => {
+            assert(derivationStepZipperDown(reg, ct, a) == Set(ct))
+          }
+          case ElementMatch(c) => ()
+          case Star(reg) =>
+          case Union(regOne, regTwo) =>
+          case Concat(regOne, regTwo) if nullable(regOne) => ()
+          case Concat(regOne, regTwo) => ()
+          case EmptyExpr() =>
+          case EmptyLang() =>
+        }
+      }
+      case _ => check(false)
+    }
+    
+    
+
+
+  }.ensuring(_ => unfocusZipper(derivationStepZipperDown(reg, ct, a).toList) == derivativeStep(r, a))
+
+
+
+
+
+
+
 
   @ghost
   @opaque

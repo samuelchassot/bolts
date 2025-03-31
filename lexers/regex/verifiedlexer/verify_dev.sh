@@ -3,7 +3,6 @@ stainless-dotty\
  src/main/scala/ch/epfl/lexer/VerifiedLexer.scala\
  src/main/scala/ch/epfl/lexer/Utils.scala\
  src/main/scala/ch/epfl/lexer/LexerInterface.scala\
- src/main/scala/ch/epfl/map/*\
  src/main/scala/ch/epfl/example/Types.scala\
  --config-file=stainless.conf\
  -D-parallel=16\

@@ -2,6 +2,8 @@ package ch.epfl.lexer
 
 // import VerifiedRegex.*
 import stainless.collection.List
+import stainless.collection.Nil
+import stainless.collection.Cons
 import stainless.annotation.law
 import stainless.annotation.ghost
 import stainless.lang.StaticChecks.*
@@ -26,7 +28,7 @@ trait Bijection[C] {
 
 case class Token[C](value: TokenValue, rule: Rule[C], @ghost originalCharacters: List[C]) {
   require(originalCharacters == rule.transformation.toCharacters(value))
-  @opaque def characters: List[C] = {
+  def characters: List[C] = {
     rule.transformation.toCharacters(value)
   }.ensuring(res => res == originalCharacters)
 }
@@ -34,6 +36,12 @@ case class Rule[C](regex: Regex[C], tag: String, isSeparator: Boolean, transform
 
 trait LexerInterface {
 
-
-
 }
+
+case class IdentifierValue(value: List[Char]) extends TokenValue
+case object IdentifierValueBijection extends Bijection[Char]:
+    def toValue(l: List[Char]): TokenValue = IdentifierValue(l)
+    def toCharacters(t: TokenValue): List[Char] = t match
+        case IdentifierValue(value) => value
+        case _ => Nil[Char]()
+end IdentifierValueBijection

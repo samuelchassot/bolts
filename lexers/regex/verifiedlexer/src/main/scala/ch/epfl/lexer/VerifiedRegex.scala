@@ -246,24 +246,24 @@ object MemoisationZipper {
 }
 
 object VerifiedRegex {
-  sealed trait Regex[C]:
+  sealed trait Regex[C](implicit hashF: Hashable[C]):
     lazy val nullable: Boolean = this.nullableFct
     lazy val lostCause: Boolean = this.lostCauseFct
-    lazy val typeId: Long = this.typeIdFct
+    lazy val hash: Long = this.hashFct
   end Regex
-  case class ElementMatch[C](c: C) extends Regex[C]
-  case class Star[C](reg: Regex[C]) extends Regex[C]
-  case class Union[C](regOne: Regex[C], regTwo: Regex[C]) extends Regex[C]
-  case class Concat[C](regOne: Regex[C], regTwo: Regex[C]) extends Regex[C]
+  case class ElementMatch[C](c: C)(implicit hashF: Hashable[C]) extends Regex[C](using hashF)
+  case class Star[C](reg: Regex[C])(implicit hashF: Hashable[C]) extends Regex[C](using hashF)
+  case class Union[C](regOne: Regex[C], regTwo: Regex[C])(implicit hashF: Hashable[C]) extends Regex[C](using hashF)
+  case class Concat[C](regOne: Regex[C], regTwo: Regex[C])(implicit hashF: Hashable[C]) extends Regex[C](using hashF)
   /** Regex that accepts only the empty string: represents the language {""}
     */
-  case class EmptyExpr[C]() extends Regex[C]
+  case class EmptyExpr[C]()(using hashF: Hashable[C]) extends Regex[C](using hashF)
 
   /** Regex that accepts nothing: represents the empty language
     */
-  case class EmptyLang[C]() extends Regex[C]
+  case class EmptyLang[C]()(using hashF: Hashable[C]) extends Regex[C](using hashF)
 
-  def generalisedUnion[C](l: List[Regex[C]]): Regex[C] = {
+  def generalisedUnion[C](l: List[Regex[C]])(implicit hashF: Hashable[C]): Regex[C] = {
     require(l.forall(validRegex))
     decreases(l.size)
     l match {
@@ -273,7 +273,7 @@ object VerifiedRegex {
     }
   }.ensuring(res => validRegex(res) && (if(l.isEmpty) isEmptyLang(res) else if(l.tail.isEmpty) res == l.head else isUnion(res)))
 
-  def generalisedConcat[C](l: List[Regex[C]]): Regex[C] = {
+  def generalisedConcat[C](l: List[Regex[C]])(implicit hashF: Hashable[C]): Regex[C] = {
     require(l.forall(validRegex))
     decreases(l.size)
     l match {
@@ -371,14 +371,14 @@ object VerifiedRegex {
     }
   }.ensuring(res => res == getLanguageWitness(r).isEmpty)
 
-  extension[C] (r: Regex[C]) def typeIdFct: Long = {
+  extension[C] (r: Regex[C])(using hashF: Hashable[C]) def hashFct: Long = {
     r match {
-      case EmptyExpr()        => 0
+      case EmptyExpr()        => 1
       case EmptyLang()        => 2
-      case ElementMatch(c)    => 3
-      case Star(r)            => 5 
-      case Union(rOne, rTwo)  => 7 
-      case Concat(rOne, rTwo) => 11 
+      case ElementMatch(c)    => 3 * hashF.hash(c)
+      case Star(r)            => 5 * r.hash
+      case Union(rOne, rTwo)  => 7 * (rOne.hash + rTwo.hash)
+      case Concat(rOne, rTwo) => 11 * (rOne.hash + rTwo.hash)
     }
   }
 
@@ -502,12 +502,12 @@ object ZipperRegex {
   type Zipper[C] = Set[Context[C]]
 
   @ghost
-  def unfocusZipper[C](zl: List[Context[C]]): Regex[C] = {
+  def unfocusZipper[C](zl: List[Context[C]])(implicit hashF: Hashable[C]): Regex[C] = {
     generalisedUnion(unfocusZipperList(zl))
   }.ensuring(res => validRegex(res))
 
   @ghost
-  def unfocusZipperList[C](zl: List[Context[C]]): List[Regex[C]] = {
+  def unfocusZipperList[C](zl: List[Context[C]])(implicit hashF: Hashable[C]): List[Regex[C]] = {
     decreases(zl)
     zl match {
       case Cons(hd, tl) => Cons(generalisedConcat(hd.exprs), unfocusZipperList(tl))
@@ -515,7 +515,7 @@ object ZipperRegex {
     }
   }.ensuring(res => res.forall(validRegex))
 
-  def focus[C](r: Regex[C]): Zipper[C] = {
+  def focus[C](r: Regex[C])(implicit hashF: Hashable[C]): Zipper[C] = {
     require(validRegex(r))
     Set(Context(List(r)))
   }.ensuring(res => unfocusZipper(res.toList) == r)
@@ -587,7 +587,7 @@ object ZipperRegex {
   }.ensuring(res => res >= 0)
 
 
-  def derivationStepZipperUp[C](context: Context[C], a: C): Zipper[C] = {
+  def derivationStepZipperUp[C](context: Context[C], a: C)(implicit hashF: Hashable[C]): Zipper[C] = {
     decreases(context.exprs.size)
     context.exprs match {
       case Cons(right, parent) if right.nullable => derivationStepZipperDown(right, Context(parent), a) ++ derivationStepZipperUp(Context(parent), a)
@@ -597,7 +597,7 @@ object ZipperRegex {
   }
 
 
-  def derivationStepZipperDown[C](expr: Regex[C], context: Context[C], a: C): Zipper[C] = {
+  def derivationStepZipperDown[C](expr: Regex[C], context: Context[C], a: C)(implicit hashF: Hashable[C]): Zipper[C] = {
     require(validRegex(expr))
     decreases(regexDepth(expr))
     expr match {
@@ -610,7 +610,7 @@ object ZipperRegex {
     }
   }
 
-  def derivationZipper[C](z: Zipper[C], input: List[C]): Zipper[C] = {
+  def derivationZipper[C](z: Zipper[C], input: List[C])(implicit hashF: Hashable[C]): Zipper[C] = {
     decreases(input.size)
     input match {
       case Cons(hd, tl) => derivationZipper(derivationStepZipper(z, hd), tl)
@@ -619,7 +619,7 @@ object ZipperRegex {
   }
 
   // @inlineOnce
-  def derivationStepZipper[C](z: Zipper[C], a: C): Zipper[C] = {
+  def derivationStepZipper[C](z: Zipper[C], a: C)(implicit hashF: Hashable[C]): Zipper[C] = {
     z.flatMap(c => derivationStepZipperUp(c, a))
   }
 
@@ -731,7 +731,7 @@ object ZipperRegex {
   }
 
   // MEMOISED -----------------------------------------------------------------------------------------------------
-  def derivationStepZipperUpMem[C](context: Context[C], a: C)(implicit cacheUp: CacheUp[C], cacheDown: CacheDown[C]): Zipper[C] = {
+  def derivationStepZipperUpMem[C](context: Context[C], a: C)(implicit cacheUp: CacheUp[C], cacheDown: CacheDown[C],  hashF: Hashable[C]): Zipper[C] = {
     decreases(context.exprs.size)
     cacheUp.get(context, a) match {
       case Some(res) => res
@@ -747,7 +747,7 @@ object ZipperRegex {
     }
   }.ensuring(res => res == derivationStepZipperUp(context, a))
 
-  def derivationStepZipperDownMem[C](expr: Regex[C], context: Context[C], a: C)(implicit cacheDown: CacheDown[C]): Zipper[C] = {
+  def derivationStepZipperDownMem[C](expr: Regex[C], context: Context[C], a: C)(implicit cacheDown: CacheDown[C], hashF: Hashable[C]): Zipper[C] = {
     require(validRegex(expr))
     decreases(regexDepth(expr))
     cacheDown.get(expr, context, a) match {
@@ -768,7 +768,7 @@ object ZipperRegex {
   }.ensuring(res => res == derivationStepZipperDown(expr, context, a))
 
   @extern
-  def derivationStepZipperMem[C](z: Zipper[C], a: C)(implicit cacheUp: CacheUp[C], cacheDown: CacheDown[C]): Zipper[C] = {
+  def derivationStepZipperMem[C](z: Zipper[C], a: C)(implicit cacheUp: CacheUp[C], cacheDown: CacheDown[C], hashF: Hashable[C]): Zipper[C] = {
     ghostExpr(SetUtils.lemmaFlatMapWithExtEqualFunctionsOnSetThenSame(z, (c: Context[C]) => derivationStepZipperUpMem(c, a)(using snapshot(cacheUp), snapshot(cacheDown)), (c: Context[C]) => derivationStepZipperUp(c, a)))
     
     def derivUpMem(c: Context[C]): Zipper[C] = derivationStepZipperUpMem(c, a)
@@ -776,7 +776,7 @@ object ZipperRegex {
     z.flatMap(derivUpMem) // rejected by stainless because of effects in the lambda's body
   }.ensuring(res => res == derivationStepZipper(z, a))
 
-  def matchZipperMem[C](z: Zipper[C], input: List[C])(implicit cacheUp: CacheUp[C], cacheDown: CacheDown[C]): Boolean = {
+  def matchZipperMem[C](z: Zipper[C], input: List[C])(implicit cacheUp: CacheUp[C], cacheDown: CacheDown[C], hashF: Hashable[C]): Boolean = {
     decreases(input.size)
     if (input.isEmpty) nullableZipper(z) else matchZipperMem(derivationStepZipperMem(z, input.head), input.tail)
   }.ensuring(res => res == matchZipper(z, input))
@@ -787,7 +787,7 @@ object ZipperRegex {
   @ghost
   @inlineOnce
   @opaque
-  def lemmaGetWitnessMatchesZipper[C](z: Zipper[C]): Unit = {
+  def lemmaGetWitnessMatchesZipper[C](z: Zipper[C])(implicit hashF: Hashable[C]): Unit = {
     require(!lostCauseZipper(z))
     assert(getLanguageWitness(z).isDefined)
     assert(!z.forall(c => lostCauseContext(c)))
@@ -806,7 +806,7 @@ object ZipperRegex {
   @ghost
   @inlineOnce
   @opaque
-  def lemmaGetWitnessMatchesContext[C](c: Context[C]): Unit = {
+  def lemmaGetWitnessMatchesContext[C](c: Context[C])(implicit hashF: Hashable[C]): Unit = {
     require(!lostCauseContext(c))
     decreases(c.exprs.size)
     c.exprs match
@@ -829,7 +829,7 @@ object ZipperRegex {
   @ghost
   @inlineOnce
   @opaque
-  def lemmaMatchThenPrefixMatchZipper[C](z: Zipper[C], prefix: List[C], s: List[C]): Unit = {
+  def lemmaMatchThenPrefixMatchZipper[C](z: Zipper[C], prefix: List[C], s: List[C])(implicit hashF: Hashable[C]): Unit = {
     require(ListUtils.isPrefix(prefix, s))
     require(matchZipper(z, s))
     decreases(prefix.size)
@@ -1079,7 +1079,7 @@ object ZipperRegex {
   @ghost
   @opaque
   @inlineOnce // type Zipper[C] = Set[Context[C]]
-  def theoremZipperRegexEquiv[C](z: Zipper[C], zl: List[Context[C]], r: Regex[C], s: List[C]): Unit = {
+  def theoremZipperRegexEquiv[C](z: Zipper[C], zl: List[Context[C]], r: Regex[C], s: List[C])(implicit hashF: Hashable[C]): Unit = {
     require(validRegex(r))
     require(z.toList == zl)
     require(r == unfocusZipper(zl))

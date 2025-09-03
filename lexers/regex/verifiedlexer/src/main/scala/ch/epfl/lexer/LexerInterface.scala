@@ -10,7 +10,9 @@ import stainless.lang._
 
 import stainless.collection.List
 import stainless.collection.Cons
-import stainless.collection.Nil
+import stainless.collection.Nil 
+
+import ch.epfl.map.Hashable
 
 
 import stainless.lang.StaticChecks.*
@@ -42,13 +44,13 @@ trait LexerInterface {
     * @param rules
     * @param input
     */
-  def lex[C](rules: List[Rule[C]], input: Vector[C]): (Vector[Token[C]], Vector[C])
+  def lex[C: Hashable](rules: List[Rule[C]], input: Vector[C]): (Vector[Token[C]], Vector[C])
 
   /** Prints back the tokens to a list of characters of the type C
     *
     * @param l
     */
-  def print[C](v: Vector[Token[C]], from: BigInt = 0): Vector[C]
+  def print[C: Hashable](v: Vector[Token[C]], from: BigInt = 0): Vector[C]
 
 
   /**
@@ -56,11 +58,11 @@ trait LexerInterface {
     *
     * @param rules
     */
-  def rulesInvariant[C](rules: List[Rule[C]]): Boolean
+  def rulesInvariant[C: Hashable](rules: List[Rule[C]]): Boolean
 
   // -------------- Soundness property of the lexer ----------------
 
-  @law @ghost def maximalMunchPrinciple[C](
+  @law @ghost def maximalMunchPrinciple[C: Hashable](
         rules: List[Rule[C]],
         input: List[C],
         suffix: List[C],
@@ -86,7 +88,7 @@ trait LexerInterface {
     }
   // -------------- Invertibility properties String -> tokens -> String ----------------
 
-  @law @ghost def invertibleThroughLexing[C](rules: List[Rule[C]], input: List[C]): Boolean = 
+  @law @ghost def invertibleThroughLexing[C: Hashable](rules: List[Rule[C]], input: List[C]): Boolean = 
     (!rules.isEmpty && rulesInvariant(rules)) ==> 
     {
       val (tokens, suffix) = lex(rules, Vector.fromList(input))
@@ -104,7 +106,7 @@ trait LexerInterface {
     * @param pred
     * @return
     */
-  def tokensListTwoByTwoPredicate[C](l: Vector[Token[C]], from: BigInt, rules: List[Rule[C]], pred: (Token[C], Token[C], List[Rule[C]]) => Boolean): Boolean
+  def tokensListTwoByTwoPredicate[C: Hashable](l: Vector[Token[C]], from: BigInt, rules: List[Rule[C]], pred: (Token[C], Token[C], List[Rule[C]]) => Boolean): Boolean
 
   /**
     * Predicate over 2 tokens, that indicates whether they are seaprable by a lexer represented by the rules
@@ -114,7 +116,7 @@ trait LexerInterface {
     * @param rules
     * @return
     */
-  def separableTokensPredicate[C](t1: Token[C], t2: Token[C], rules: List[Rule[C]]): Boolean
+  def separableTokensPredicate[C: Hashable](t1: Token[C], t2: Token[C], rules: List[Rule[C]]): Boolean
 
   /**
     * Predicate that indicates whether the rules are compatible with the tokens
@@ -123,10 +125,10 @@ trait LexerInterface {
     * @param rules
     * @param tokens
     */
-  def rulesProduceEachTokenIndividually[C](rules: List[Rule[C]], tokens: Vector[Token[C]]): Boolean
-  def rulesProduceIndivualToken[C](rules: List[Rule[C]], token: Token[C]): Boolean
+  def rulesProduceEachTokenIndividually[C: Hashable](rules: List[Rule[C]], tokens: Vector[Token[C]]): Boolean
+  def rulesProduceIndivualToken[C: Hashable](rules: List[Rule[C]], token: Token[C]): Boolean
 
-  @law @ghost def separableTokensThenInvertibleThroughPrinting[C](rules: List[Rule[C]], tokens: List[Token[C]]): Boolean = 
+  @law @ghost def separableTokensThenInvertibleThroughPrinting[C: Hashable](rules: List[Rule[C]], tokens: List[Token[C]]): Boolean = 
     (!rules.isEmpty && 
     rulesInvariant(rules) && 
     rulesProduceEachTokenIndividually(rules, Vector.fromList(tokens)) && 
@@ -150,14 +152,14 @@ trait LexerInterface {
     * @param rules
     * @param rulesRec
     */
-  def sepAndNonSepRulesDisjointChars[C](rules: List[Rule[C]], rulesRec: List[Rule[C]]): Boolean = {
+  def sepAndNonSepRulesDisjointChars[C: Hashable](rules: List[Rule[C]], rulesRec: List[Rule[C]]): Boolean = {
       rulesRec match {
         case Cons(hd, tl) => ruleDisjointCharsFromAllFromOtherType(hd, rules) && sepAndNonSepRulesDisjointChars(rules, tl)
         case Nil()        => true
       }
     }
 
-  def ruleDisjointCharsFromAllFromOtherType[C](r: Rule[C], rules: List[Rule[C]]): Boolean = {
+  def ruleDisjointCharsFromAllFromOtherType[C: Hashable](r: Rule[C], rules: List[Rule[C]]): Boolean = {
     decreases(rules)
     rules match {
       case Cons(hd, tl) if hd.isSeparator != r.isSeparator => rulesUseDisjointChars(r, hd) && ruleDisjointCharsFromAllFromOtherType(r, tl)
@@ -166,7 +168,7 @@ trait LexerInterface {
     }
   }
 
-  def rulesUseDisjointChars[C](r1: Rule[C], r2: Rule[C]): Boolean = {
+  def rulesUseDisjointChars[C: Hashable](r1: Rule[C], r2: Rule[C]): Boolean = {
     r2.regex.usedCharacters.forall(c => !r1.regex.usedCharacters.contains(c)) &&
     r1.regex.usedCharacters.forall(c => !r2.regex.usedCharacters.contains(c))
   }
@@ -176,7 +178,7 @@ trait LexerInterface {
     * @param l
     * @param separatorToken
     */
-  def printWithSeparatorToken[C](l: Vector[Token[C]], separatorToken: Token[C], from: BigInt = 0): Vector[C]
+  def printWithSeparatorToken[C: Hashable](l: Vector[Token[C]], separatorToken: Token[C], from: BigInt = 0): Vector[C]
 
   /** Prints back the tokens to a list of characters of the type C, by adding a separatorToken between tokens when the maxPrefix would return
       * another token if printed back to back.
@@ -187,10 +189,10 @@ trait LexerInterface {
       * @param l
       * @param separatorToken
       */
-  def printWithSeparatorTokenWhenNeeded[C](rules: List[Rule[C]], l: Vector[Token[C]], separatorToken: Token[C], from: BigInt = 0): Vector[C]
+  def printWithSeparatorTokenWhenNeeded[C: Hashable](rules: List[Rule[C]], l: Vector[Token[C]], separatorToken: Token[C], from: BigInt = 0): Vector[C]
 
 
-  @law @ghost def invertibleThroughPrintingWithSeparatorWhenNeeded[C](rules: List[Rule[C]], tokens: List[Token[C]], separatorToken: Token[C]): Boolean =
+  @law @ghost def invertibleThroughPrintingWithSeparatorWhenNeeded[C: Hashable](rules: List[Rule[C]], tokens: List[Token[C]], separatorToken: Token[C]): Boolean =
     (!rules.isEmpty && 
       rulesInvariant(rules) && 
       rulesProduceEachTokenIndividually(rules, Vector.fromList(tokens)) &&
@@ -201,7 +203,7 @@ trait LexerInterface {
     ) ==>
       (lex(rules, printWithSeparatorTokenWhenNeeded(rules, Vector.fromList(tokens), separatorToken))._1.list.filter(!_.rule.isSeparator) == tokens)
 
-  @law @ghost def invertibleThroughPrintingWithSeparator[C](rules: List[Rule[C]], tokens: List[Token[C]], separatorToken: Token[C]): Boolean =
+  @law @ghost def invertibleThroughPrintingWithSeparator[C: Hashable](rules: List[Rule[C]], tokens: List[Token[C]], separatorToken: Token[C]): Boolean =
     (!rules.isEmpty && 
       rulesInvariant(rules) && 
       rulesProduceEachTokenIndividually(rules, Vector.fromList(tokens)) &&

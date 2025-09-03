@@ -13,6 +13,7 @@ import ch.epfl.benchmark.original.OriginalAmyLexer
 import ch.epfl.lexer.MemoisationZipper
 import ch.epfl.lexer.VerifiedRegex.Regex
 import ch.epfl.map.Hashable
+import ch.epfl.lexer.benchmark.HashableChar
 import ch.epfl.lexer.ZipperRegex.Context
 import ch.epfl.lexer.benchmark.ContextCharHashable
 import ch.epfl.lexer.benchmark.RegexCharHashable
@@ -22,6 +23,7 @@ import java.io.File
 
 @State(Scope.Benchmark)
 class LexerBenchmark {
+  import LexerBenchmarkUtils.given
 
   @Param(
     Array(
@@ -73,6 +75,7 @@ class LexerBenchmark {
 
 @State(Scope.Benchmark)
 class LexerBenchmarkGenerated {
+  import LexerBenchmarkUtils.given
   @Param(
     Array(
           "generated_code_000529chars.amy",
@@ -186,10 +189,7 @@ class LexerBenchmarkGenerated {
   @BenchmarkMode(Array(Mode.AverageTime))
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
   def lex_ZipperMem(): Unit = {
-    val (tokens, suffix) = Lexer.lexMem(AmyLexer.rules, LexerBenchmarkUtils.generatedFileContents(file))(
-      using LexerBenchmarkUtils.zipperCacheUp,
-      LexerBenchmarkUtils.zipperCacheDown
-    )
+    val (tokens, suffix) = Lexer.lexMem(AmyLexer.rules, LexerBenchmarkUtils.generatedFileContents(file))
     assert(suffix.isEmpty)
   }
 
@@ -205,6 +205,7 @@ class LexerBenchmarkGenerated {
 
 
 object LexerBenchmarkUtils {
+  
   val exampleFileNames: Seq[String] = Seq(
         "ADT_864chars.amy",
         "BinaryTree_952chars.amy",
@@ -328,6 +329,7 @@ object LexerBenchmarkUtils {
     (name -> file)
   }).toMap
 
-  val zipperCacheUp: MemoisationZipper.CacheUp[Char] = MemoisationZipper.emptyUp(ContextCharHashable)
-  val zipperCacheDown: MemoisationZipper.CacheDown[Char] = MemoisationZipper.emptyDown(RegexContextCharHashable)
+  given Hashable[Char] = HashableChar
+  given zipperCacheUp: MemoisationZipper.CacheUp[Char] = MemoisationZipper.emptyUp(ContextCharHashable)
+  given zipperCacheDown: MemoisationZipper.CacheDown[Char] = MemoisationZipper.emptyDown(RegexContextCharHashable)
 }

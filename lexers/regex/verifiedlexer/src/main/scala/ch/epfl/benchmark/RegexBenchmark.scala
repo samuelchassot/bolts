@@ -21,6 +21,7 @@ import ch.epfl.map.Hashable
 
 @State(Scope.Benchmark)
 class RegexBenchmark {
+  import RegexBenchmarkUtils.given
 
   @Param(
     Array(
@@ -89,7 +90,7 @@ class RegexBenchmark {
   def abStarAccepting_RegexMem_list(): Unit = {
     val r = RegexBenchmarkUtils.abStar
     val s = RegexBenchmarkUtils.abStar_Accepting_strings_list(size.toInt)
-    val res = matchRMem(r, s)(using RegexBenchmarkUtils.regexCache)
+    val res = matchRMem(r, s)
     assert(res)
   }
 
@@ -99,7 +100,7 @@ class RegexBenchmark {
   def abStarAccepting_ZipperMem_list(): Unit = {
     val r = RegexBenchmarkUtils.abStar
     val s = RegexBenchmarkUtils.abStar_Accepting_strings_list(size.toInt)
-    val res = matchZipperMem(r, s)(using RegexBenchmarkUtils.zipperCacheUp, RegexBenchmarkUtils.zipperCacheDown)
+    val res = matchZipperMem(r, s)
     assert(res)
   }
 
@@ -149,9 +150,10 @@ class RegexBenchmark {
   @BenchmarkMode(Array(Mode.AverageTime))
   @OutputTimeUnit(TimeUnit.MICROSECONDS)
   def emailAccepting_RegexMem_list(): Unit = {
+    
     val r = RegexBenchmarkUtils.emailRegex
     val s = RegexBenchmarkUtils.email_Accepting_strings_list(size.toInt)
-    val res = matchRMem(r, s)(using RegexBenchmarkUtils.regexCache)
+    val res = matchRMem(r, s)
     assert(res)
   }
 
@@ -271,12 +273,12 @@ class LexerRegexBenchmark {
 object RegexCharHashable extends Hashable[(Regex[Char], Char)] {
   override def hash(k: (Regex[Char], Char)): Long = {
     val (r, c) = k
-    r.typeId * 59 + c.hashCode() * 31
+    r.hash * 59 + c.hashCode() * 31
   }
 }
 object ContextHashable extends Hashable[Context[Char]] {
   override def hash(ctx: Context[Char]): Long = {
-    ctx.exprs.foldLeft(12343L)((acc, expr) => acc * expr.typeId)
+    ctx.exprs.foldLeft(12343L)((acc, expr) => acc * expr.hash)
   }
 }
 
@@ -290,11 +292,12 @@ object ContextCharHashable extends Hashable[(Context[Char], Char)] {
 object RegexContextCharHashable extends Hashable[(Regex[Char], Context[Char], Char)] {
   override def hash(k: (Regex[Char], Context[Char], Char)): Long = {
     val (r, ctx, c) = k
-    r.typeId * 12377 + ContextHashable.hash(ctx) * 12379 + c.hashCode() * 12391
+    r.hash * 12377 + ContextHashable.hash(ctx) * 12379 + c.hashCode() * 12391
   }
 }
 
 object RegexBenchmarkUtils {
+  given Hashable[Char] = HashableChar
   val seed = 0x0ddba11
   val r = new Random(seed)
 
@@ -304,9 +307,9 @@ object RegexBenchmarkUtils {
   val abStar_Accepting_strings: Map[Int, Vector[Char]] = string_sizes.map(n => (n, (1 to n).map(_ => random_a_or_b()).mkString.toStainless)).toMap
   val abStar_Accepting_strings_list: Map[Int, StainlessList[Char]] = string_sizes.map(n => (n, (1 to n).map(_ => random_a_or_b()).mkString.toStainlessList)).toMap
 
-  val regexCache: MemoisationRegex.Cache[Char] = MemoisationRegex.empty(RegexCharHashable)
-  val zipperCacheUp: MemoisationZipper.CacheUp[Char] = MemoisationZipper.emptyUp(ContextCharHashable)
-  val zipperCacheDown: MemoisationZipper.CacheDown[Char] = MemoisationZipper.emptyDown(RegexContextCharHashable)
+  given regexCache: MemoisationRegex.Cache[Char] = MemoisationRegex.empty(RegexCharHashable)
+  given zipperCacheUp: MemoisationZipper.CacheUp[Char] = MemoisationZipper.emptyUp(ContextCharHashable)
+  given zipperCacheDown: MemoisationZipper.CacheDown[Char] = MemoisationZipper.emptyDown(RegexContextCharHashable)
 
   val possibleEmailChars = "abcdedfghijklmnopqrstuvwxyz."
   val emailRegex = possibleEmailChars.anyOf.+ ~ "@".r ~ possibleEmailChars.anyOf.+ ~ ".".r ~ possibleEmailChars.anyOf.+

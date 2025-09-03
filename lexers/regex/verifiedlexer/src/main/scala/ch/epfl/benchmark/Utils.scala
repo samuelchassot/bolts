@@ -1,7 +1,8 @@
 /** Author: Samuel Chassot
   */
 
-package ch.epfl.lexer.benchmark
+package ch.epfl.lexer
+package benchmark
 
 import stainless.annotation._
 import stainless.lang._
@@ -18,8 +19,13 @@ import ch.epfl.lexer.Vector
 import scala.annotation.tailrec
 
 
+object HashableChar extends Hashable[Char] {
+  override def hash(c: Char): Long = c.hashCode().toLong
+}
+
 @extern
 object RegexUtils {
+  given Hashable[Char] = HashableChar
   extension (s: String) def r: Regex[Char] = s.toCharArray().toList.foldRight[Regex[Char]](EmptyExpr())((c, acc) => Concat(ElementMatch(c), acc))
   extension (r: Regex[Char]) infix def | (r2: Regex[Char]): Regex[Char] = Union(r, r2)
   extension (r: Regex[Char]) def * : Regex[Char] = Star(r)

@@ -19,7 +19,11 @@ import ch.epfl.lexer.VerifiedLexer.Lexer
 import ch.epfl.lexer.benchmark.RegexUtils._
 import _root_.benchmark.lexer.LexerBenchmarkUtils
 
+import ch.epfl.lexer.benchmark.HashableChar
+
 import stainless.collection.List
+
+given Hashable[Char] = HashableChar
 object Main {
   def main(args: Array[String]): Unit = {
     // testAmyLexer()
@@ -29,7 +33,7 @@ object Main {
     val filepath = "/Users/samuel/EPFL/bolts/lexers/regex/verifiedlexer/src/main/scala/ch/epfl/benchmark/res/generated_code_041791chars.amy"
     val input: String = scala.io.Source.fromFile(filepath).mkString
     println(f"Lexing: $input")
-    val (tokens, suffix) = Lexer.lexMem(AmyLexer.rules, input.toStainless)(using LexerBenchmarkUtils.zipperCacheUp, LexerBenchmarkUtils.zipperCacheDown)
+    val (tokens, suffix) = Lexer.lexMem(AmyLexer.rules, input.toStainless)(using HashableChar, LexerBenchmarkUtils.zipperCacheUp, LexerBenchmarkUtils.zipperCacheDown)
     assert(suffix.isEmpty)
     println("Done!")
     //    tokeniseAmyFileMem("src/main/scala/ch/epfl/example/res/Ultimate_duplicated_commented_7629chars.amy","src/main/scala/ch/epfl/example/res/Ultimate_duplicated_commented_7629chars.amytokens")
@@ -101,7 +105,7 @@ def tokeniseAmyFileMem(filepath: String, destFilePath: String): Unit = {
   val fileContent: String = scala.io.Source.fromFile(filepath).mkString
   println("Lexing with memoization")
   println(s"File content for file '$filepath':\n$fileContent")
-  val (tokens, suffix) = Lexer.lexMem(AmyLexer.rules, fileContent.toStainless)(using LexerBenchmarkUtils.zipperCacheUp, LexerBenchmarkUtils.zipperCacheDown)
+  val (tokens, suffix) = Lexer.lexMem(AmyLexer.rules, fileContent.toStainless)(using HashableChar, LexerBenchmarkUtils.zipperCacheUp, LexerBenchmarkUtils.zipperCacheDown)
   assert(suffix.isEmpty)
   val tokenStrings = tokens.map(t => t.asString())
   val tokenString = tokenStrings.toScala.mkString("\n")
@@ -198,39 +202,39 @@ def testZipperMatch(): Unit = {
 
 
  object KeyHashable extends Hashable[(Regex[Char], Char)] {
-    override def hash(c: (Regex[Char], Char)): Long = c._1.typeId * 31 + c._2.hashCode()
+    override def hash(c: (Regex[Char], Char)): Long = c._1.hash * 31 + c._2.hashCode()
   }
 
 def testRegex(): Unit = {
-  val cache: Cache[Char] = Cache(MutableHashMap.getEmptyHashMap(_ => EmptyLang(), KeyHashable))
+  given cache: Cache[Char] = Cache(MutableHashMap.getEmptyHashMap(_ => EmptyLang(), KeyHashable))
   val r1 = ("a".r | "b".r).*
   println(f"r1 = ${r1}")
   println(f"list = ${"ab".toStainless}")
   println(f"matching a with r1 without cache: ${matchR(r1, Cons('a', Nil()))}")
-  println(f"matching a with r1: ${matchRMem(r1, "a".toStainlessList)(using cache)}")
-  println(f"matching abababababababababbbababbababbbabab with r1: ${matchRMem(r1, "abababababababababbbababbababbbabab".toStainlessList)(using cache)}")
-  println(f"matching abchihihi with r1: ${matchRMem(r1, "abchihihi".toStainlessList)(using cache)}")
+  println(f"matching a with r1: ${matchRMem(r1, "a".toStainlessList)}")
+  println(f"matching abababababababababbbababbababbbabab with r1: ${matchRMem(r1, "abababababababababbbababbababbbabab".toStainlessList)}")
+  println(f"matching abchihihi with r1: ${matchRMem(r1, "abchihihi".toStainlessList)}")
 
   val r2 = "abcdedfghijklmnopqrstuvwxyz.".anyOf.+ ~ "@".r ~ "abcdedfghijklmnopqrstuvwxyz".anyOf.+ ~ ".".r ~ "abcdedfghijklmnopqrstuvwxyz".anyOf.+
   println(f"r2 = ${r2}")
   val s21 = "samuel.chassot@gmail.com"
-  println(f"matching $s21 with r2: ${matchRMem(r2, s21.toStainlessList)(using cache)}")
+  println(f"matching $s21 with r2: ${matchRMem(r2, s21.toStainlessList)}")
 
   println(s"r1 = $r1\nremoveUselessConcat(r1) = ${removeUselessConcat(r1)}")
 
 }
 
 object RegexBenchmark {
-  val cache: Cache[Char] = Cache(MutableHashMap.getEmptyHashMap(_ => EmptyLang(), KeyHashable))
+  given cache: Cache[Char] = Cache(MutableHashMap.getEmptyHashMap(_ => EmptyLang(), KeyHashable))
   def benchmark01(): Unit = {
     val r = ("a".r | "b".r).*
     val s = "abababababababababbbababbababbbabab"
-    val match11 = matchRMem(r, s.toStainlessList)(using cache)
+    val match11 = matchRMem(r, s.toStainlessList)
     println(s"Matching $s with r -> $match11")
     assert(match11)
 
     val s2 = "abchihihi"
-    val match12 = matchRMem(r, s2.toStainlessList)(using cache)
+    val match12 = matchRMem(r, s2.toStainlessList)
     println(s"Matching $s2 with r -> $match12")
     assert(!match12)
   }
@@ -238,12 +242,12 @@ object RegexBenchmark {
   def benchmark02(): Unit = {
     val r = "abcdedfghijklmnopqrstuvwxyz.".anyOf.+ ~ "@".r ~ "abcdedfghijklmnopqrstuvwxyz".anyOf.+ ~ ".".r ~ "abcdedfghijklmnopqrstuvwxyz".anyOf.+
     val s = "example.example@domain.com"
-    val match21 = matchRMem(r, s.toStainlessList)(using cache)
+    val match21 = matchRMem(r, s.toStainlessList)
     println(s"Matching $s with r -> $match21")
     assert(match21)
 
     val s2 = "example.example@domain"
-    val match22 = matchRMem(r, s2.toStainlessList)(using cache)
+    val match22 = matchRMem(r, s2.toStainlessList)
     println(s"Matching $s2 with r -> $match22")
     assert(!match22)
   }
@@ -252,13 +256,13 @@ object RegexBenchmark {
     val r = ("a".r | "b".r).*
     println(s"r = $r")
     val s = "ababa"
-    val match31 = matchRMem(r, s.toStainlessList)(using cache)
+    val match31 = matchRMem(r, s.toStainlessList)
     println(s"Matching $s with r -> $match31")
     assert(match31)
 
     val s2 = "ababaabbabbababaaaabababbababbbababa"
     println(s"Matching $s2 with r...")
-    val match32 = matchRMem(r, s2.toStainlessList)(using cache)
+    val match32 = matchRMem(r, s2.toStainlessList)
     println(s"Done -> $match32")
     assert(match32)
   }

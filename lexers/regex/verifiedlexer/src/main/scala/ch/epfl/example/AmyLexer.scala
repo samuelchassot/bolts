@@ -7,6 +7,9 @@ import ch.epfl.lexer.Token
 import ch.epfl.lexer.TokenValue
 import ch.epfl.lexer.VerifiedRegex.*
 
+import ch.epfl.lexer.benchmark.HashableChar
+import ch.epfl.map.Hashable
+
 import stainless.collection.List
 import stainless.collection.Cons
 import stainless.collection.Nil
@@ -28,6 +31,7 @@ import stainless.lang.Exception
 import ch.epfl.lexer.Vector
 
 object ExampleAmyLexer:
+    given Hashable[Char] = HashableChar
     object Types:
         case class IntegerValue(value: Int, text: Vector[Char]) extends TokenValue:
             require(IntegerValueUtils.charsToInt(text) == value)

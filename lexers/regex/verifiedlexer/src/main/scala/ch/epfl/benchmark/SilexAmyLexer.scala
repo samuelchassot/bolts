@@ -3,6 +3,7 @@ import java.io.File
 
 import silex._
 
+
 // The lexer for Amy.
 object OriginalAmyLexer extends Lexers {
 

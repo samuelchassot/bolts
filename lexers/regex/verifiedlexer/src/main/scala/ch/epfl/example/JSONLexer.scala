@@ -33,6 +33,7 @@ object ExampleJsonLexer:
             
         object IntegerValueUtils:
             extension [A](v: Vector[A])
+                // TODO build the bigint
                 @extern @pure def mkString(inter: String): String = 
                     val sb = new StringBuilder()
                     def loop(from: BigInt): Unit =

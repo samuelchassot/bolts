@@ -252,7 +252,7 @@ object MemoisationZipper {
 object VerifiedRegex {
   sealed trait Regex[C]:
     lazy val nullable: Boolean = this.nullableFct
-    lazy val lostCause: Boolean = this.lostCauseFct
+    lazy val lostCause: Boolean = lostCauseFctInner(this)
     lazy val hash: Long = this.hashFct
   end Regex
   case class ElementMatch[C](c: C) extends Regex[C]
@@ -364,7 +364,8 @@ object VerifiedRegex {
     }
   }
 
-  extension[C] (r: Regex[C]) def lostCauseFct: Boolean = {
+  def lostCauseFctInner[C](r: Regex[C]): Boolean = {
+    decreases(regexDepthTotal(r))
     r match {
       case EmptyExpr()        => false
       case EmptyLang()        => true
@@ -373,6 +374,9 @@ object VerifiedRegex {
       case Union(rOne, rTwo)  => rOne.lostCause && rTwo.lostCause
       case Concat(rOne, rTwo) => rOne.lostCause || rTwo.lostCause
     }
+  }.ensuring(res => res == getLanguageWitness(r).isEmpty)
+  extension[C] (r: Regex[C]) def lostCauseFct: Boolean = {
+    lostCauseFctInner(r)
   }.ensuring(res => res == getLanguageWitness(r).isEmpty)
 
   extension[C] (r: Regex[C]) def hashFct: Long = {

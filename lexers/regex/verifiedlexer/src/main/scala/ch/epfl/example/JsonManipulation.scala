@@ -265,6 +265,7 @@ object JsonManipulationExample:
       case None() => None()
   }.ensuring(res => res.isEmpty || usesJsonRules(res.get))
 
+  // Extract the sorting to 
   def main(path: String)(using cacheUp: MemoisationZipper.CacheUp[Char], cacheDown: MemoisationZipper.CacheDown[Char]): Option[Vector[Char]] = {
     val input: Vector[Char] = openFile(path)
 
